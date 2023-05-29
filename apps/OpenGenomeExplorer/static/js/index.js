@@ -40,19 +40,6 @@ let init = (app) => {
 
     // This is the Vue data.
     app.data = {
-        query: "",
-        meow: "",
-        reply_meow: [],
-        reply_mode: false,
-        meow_id: 0,
-        meows: [],
-        user_rows: [],
-        select_buttons: [true, false, false],
-        meows_loading: false,
-        your_meows_loading: false,
-        recent_meows_loading: false,
-        last_chosen_user_id: 0,
-        in_specified_user_meow: false,
         user: null,
         user_snps: [],
         hide_upload: true,
@@ -72,114 +59,6 @@ let init = (app) => {
         return a;
     };
 
-    app.get_time = function (timestamp) {
-        return Sugar.Date(timestamp + "Z").relative()
-    }
-
-    app.set_follow = function (user_id) {
-        console.log("follow!")
-        axios.get(set_follow_url, {params: {user_id: user_id}})
-            .then(function (result) {
-                axios.get(search_url).then(function (r) {
-                    app.vue.user_rows = r.data.user_rows;
-                })
-            });
-    }
-
-    app.post_remeow = function (remeow) {
-            axios.get(post_meow_url, {params: {m: remeow}})
-                .then(function (result) {
-                    axios.get(get_meows_url).then(function (r) {
-                        app.vue.meows = app.enumerate(r.data.meows);
-                    })
-                });
-    }
-
-    app.post_meow = function () {
-        if (app.vue.reply_mode) {
-            app.post_reply(app.vue.meow)
-        }
-        else {
-        axios.get(post_meow_url, {params: {m: app.vue.meow}})
-            .then(function (result) {
-                if (app.vue.select_buttons[0]) {
-                    app.get_meows();
-                }
-                else if (app.vue.select_buttons[1]) {
-                    app.your_meows();
-                }
-                else if (app.vue.select_buttons[2]) {
-                    app.recent_meows();
-                }
-                else if (app.vue.in_specified_user_meow) {
-                    app.get_user_meows(last_chosen_user_id);
-                }
-            });
-        }
-    }
-    app.post_reply = function (reply) {
-        axios.get(post_reply_url, {params: {reply: reply, meow_id: app.vue.meow_id}})
-            .then(function (result) {
-                    app.get_replies(app.vue.meow_id)
-            });
-    }
-
-    app.get_replies = function (meow_id) {
-        axios.get(get_replies_url, {params: {meow_id: meow_id}})
-            .then(function (result) {
-                for (let i = 0; i < app.vue.meows.length; i++) {
-                    if (app.vue.meows[i].id == meow_id) {
-                        app.vue.reply_meow = app.vue.meows[i];
-                    }
-                }
-            
-                app.vue.meows = app.enumerate(result.data.replies);
-                app.vue.reply_mode = true;
-                app.vue.meow_id = meow_id
-                app.vue.in_specified_user_meow = false;
-            });
-    }
-
-    app.get_meows = function () {
-        select_buttons=[true, false, false];
-        axios.get(get_meows_url)
-            .then(function (result) {
-                app.vue.meows = app.enumerate(result.data.meows);
-                app.vue.reply_mode = false;
-                app.vue.meows_loading = false;
-                app.vue.in_specified_user_meow = false;
-            });
-    }
-
-    app.get_user_meows = function (user_id) {
-        axios.get(get_user_meows_url, {params: {user_id: user_id}})
-            .then(function (result) {
-                app.vue.meows = app.enumerate(result.data.meows);
-                app.vue.reply_mode = false;
-                app.vue.last_chosen_user_id = user_id;
-                app.vue.in_specified_user_meow = true;
-            });
-    }
-
-    app.your_meows = function () {
-        axios.get(your_meows_url)
-            .then(function (result) {
-                app.vue.meows = app.enumerate(result.data.meows);
-                app.vue.reply_mode = false;
-                app.vue.your_meows_loading = false;
-                app.vue.in_specified_user_meow = false;
-            });
-    }
-
-    app.recent_meows = function () {
-        axios.get(get_recent_meows_url)
-            .then(function (result) {
-                app.vue.meows = app.enumerate(result.data.meows);
-                app.vue.reply_mode = false;
-                app.vue.recent_meows_loading = false;
-                app.vue.in_specified_user_meow = false;
-            });
-    }
 
     app.upload_complete = function (file_name, file_type) {
         app.vue.uploading = false;
@@ -249,40 +128,9 @@ let init = (app) => {
         }
     };
 
-    app.search = function () {
-        console.log("searching!")
-            axios.get(search_url, {params: {q: app.vue.query}})
-                .then(function (result) {
-                    app.vue.user_rows = result.data.user_rows;
-                    if (result.length == 0) {
-                        axios.get(search_url).then(function (r) {
-                            app.vue.user_rows = r.data.user_rows;
-                            app.vue.reply_mode = false;
-                            app.vue.in_specified_user_meow = false;
-                        })
-                    }
-                });
-    }
-
-    app.form_reset = function() {
-        app.vue.meow = "";
-      }
-
     // This contains all the methods.
     app.methods = {
         // Complete as you see fit.
-        post_meow: app.post_meow,
-        post_reply: app.post_reply,
-        get_meows: app.get_meows,
-        your_meows: app.your_meows,
-        post_remeow: app.post_remeow,
-        get_replies: app.get_replies,
-        search: app.search,
-        set_follow: app.set_follow,
-        get_user_meows: app.get_user_meows,
-        recent_meows: app.recent_meows,
-        get_time: app.get_time,
-        form_reset: app.form_reset,
         upload_file: app.upload_file,
         upload_complete: app.upload_complete,
         get_snps: app.get_snps,
@@ -328,17 +176,7 @@ let init = (app) => {
         //     }
         //   });
 
-        axios.get(get_meows_url).then(function (r) {
-            app.vue.meows = app.enumerate(r.data.meows);
-        })
-
         app.get_snps();
-
-        axios.get(search_url).then(function (r) {
-            app.vue.user_rows = r.data.user_rows;
-            console.log(app.vue.user_rows)
-            console.log(search_url)
-        })
 
     };
 

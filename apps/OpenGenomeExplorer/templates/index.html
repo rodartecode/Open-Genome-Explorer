@@ -68,163 +68,18 @@
         </tbody>
       </table>
     </div>
+
+    <nav class="pagination" role="navigation" aria-label="pagination">
+      <a class="pagination-previous" @click="retrieve_snps(cur_page_num-1)">Previous</a>
+      <a class="pagination-next" @click="retrieve_snps(cur_page_num+1)">Next page</a>
+    </nav>
   </div>
-
-  <nav class="pagination" role="navigation" aria-label="pagination">
-    <a class="pagination-previous" @click="retrieve_snps(cur_page_num-1)">Previous</a>
-    <a class="pagination-next" @click="retrieve_snps(cur_page_num+1)">Next page</a>
-    <ul class="pagination-list">
-      <li>
-        <a class="pagination-link" aria-label="Goto page 1">1</a>
-      </li>
-      <li>
-        <span class="pagination-ellipsis">&hellip;</span>
-      </li>
-      <li>
-        <a class="pagination-link" aria-label="Goto page 45">45</a>
-      </li>
-      <li>
-        <a class="pagination-link is-current" aria-label="Page 46" aria-current="page">46</a>
-      </li>
-      <li>
-        <a class="pagination-link" aria-label="Goto page 47">47</a>
-      </li>
-      <li>
-        <span class="pagination-ellipsis">&hellip;</span>
-      </li>
-      <li>
-        <a class="pagination-link" aria-label="Goto page 86">86</a>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="columns">
-    <div class="column">
-      <div v-if="reply_mode==true" class="box">
-        <nav class="level is-mobile">
-          <div class="level-left">
-            <a class="level-item" aria-label="reply">
-              <span class="icon is-small">
-                <i class="fa fa-user"></i>
-                </span>
-                <span class="mI-2">{{reply_meow.author}}</span>
-            </a>
-          </div>
-          <div class="level-right">
-            <span class="level-item">
-              {{reply_meow.timestamp}}
-            </span>
-          </div>
-        </nav>
-        <div class="content">
-          {{reply_meow.content}}
-        </div>
-      </div>
-      <form @submit.prevent="post_meow(); form_reset();">
-      <div class="field">
-        <textarea class="textarea" placeholder="What's on your mind?" rows="2" v-model="meow"></textarea>
-      </div>
-      <div class="field">
-        <div class="control"><button class="button is-link">Publish!</button></div> 
-      </div>
-      </form>
-      <div v-if="meows.length != 0" v-for="meow in meows" class="box">
-        <nav class="level is-mobile">
-          <div class="level-left">
-            <a class="level-item" aria-label="reply" @click="get_user_meows(meow.user_id)">
-              <span class="icon is-small">
-                <i class="fa fa-user"></i>
-                </span>
-                <span class="mI-2">{{meow.author}}</span>
-            </a>
-          </div>
-          <div class="level-right">
-            <span class="level-item">
-              {{get_time(meow.timestamp)}}
-            </span>
-          </div>
-        </nav>
-        <div class="content">
-          {{meow.content}}
-        </div>
-        <nav class="level is-mobile">
-          <div class="level-left">
-            <a class="level-item" aria-label="reply" @click="get_replies(meow.id)">
-              <span class="icon is-small">
-                <i class="fa fa-reply" aria-hidden="true"></i>
-              </span>
-              <span class="ml-1" v-if="meow.replies > 0">{{meow.replies}}</span>
-            </a>
-            <a @click="post_remeow('RT_'+meow.author+': '+meow.content)" class="level-item" aria-label="retweet">
-              <span class="icon is-small">
-                <i class="fa fa-retweet" aria-hidden="true"></i>
-              </span>
-            </a>
-          </div>
-        </nav>
-      </div>
-    </div>
-    
-    <div class="column is-one-third has-background-light">
-      <p class="control">
-        <button @click="get_meows(); select_buttons=[true, false, false]; meows_loading=true;" class="button" :class='{ "is-link": select_buttons[0], "is-loading": meows_loading }'>
-          <span>Your Feed</span>
-        </button>
-      </p>
-      <br>
-      <p class="control">
-        <button @click="your_meows(); select_buttons=[false, true, false]; your_meows_loading=true;" class="button" :class='{ "is-link": select_buttons[1], "is-loading": meows_loading }'>
-          <span>Your Meows</span>
-        </button>
-      </p>
-      <br>
-      <p class="control">
-        <button @click="recent_meows(); select_buttons=[false, false, true]; recent_meows_loading=true;" class="button" :class='{ "is-link": select_buttons[2], "is-loading": recent_meows_loading }'>
-          <span>Recent Meows</span>
-        </button>
-      </p>
-      <br>
-      <div class="field">
-        <p class="control has-icons-right">
-          <input class="input" type="text" placeholder="Search users" v-model="query" @keyup="search">
-          <span class="icon is-small is-right clickable">
-            <i class="fa fa-times-circle" @click="search"></i>
-          </span>
-        </p>
-      </div>
-      <div v-if="user_rows.length != 0" v-for="user in user_rows" class="field has-addons">
-        <p class="control">
-          <button class="button">
-            <span>{{user.username}}</span>
-          </button>
-        </p>
-        <p class="control">
-          <button @click="set_follow(user.id)" :class=user.color>
-            <span class="icon is-small">
-              <i :class=user.icon></i>
-            </span>
-            <span>{{user.follow}}</span>
-          </button>
-        </p>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 
 [[block page_scripts]]
 <!-- Loads the index-specific js for Vue -->
 <script>
-  let get_meows_url = "[[=XML(get_meows_url)]]";
-  let get_user_meows_url = "[[=XML(get_user_meows_url)]]";
-  let get_recent_meows_url = "[[=XML(get_recent_meows_url)]]";
-  let your_meows_url = "[[=XML(your_meows_url)]]";
-  let post_meow_url = "[[=XML(post_meow_url)]]";
-  let get_replies_url = "[[=XML(get_replies_url)]]";
-  let post_reply_url = "[[=XML(post_reply_url)]]";
-  let set_follow_url = "[[=XML(set_follow_url)]]";
-  let search_url = "[[=XML(search_url)]]";
   let auth_verify_url = "[[=XML(auth_verify_url)]]";
   let get_snps_url = "[[=XML(get_snps_url)]]";
   let file_upload_url = "[[=XML(file_upload_url)]]";
