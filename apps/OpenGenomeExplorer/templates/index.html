@@ -8,8 +8,6 @@
 
 
 <div class="section" id="vue-target" v-cloak>
-  <!-- Put here your Vue.js template -->
-
   <div v-if="user_snps.length < 1 && hide_upload == false" class="field has-addons">
     <p class="control">
       <div v-if="!upload_done" class="file is-info">
@@ -27,8 +25,14 @@
         </label>
       </div>
     </p>
-    <p v-if="upload_done" class="control">
-        <span> Uploaded file: {{uploaded_file}}</span>
+    <p class="control">
+      <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
+        <span class="icon">
+          <i class="fa fa-download fa-fw"></i>
+        </span>
+        <span>{{file_info}}</span>
+      </button>
+      <button v-else class="button is-static">No file uploaded</button>
     </p>
   </div>
 
@@ -83,6 +87,10 @@
   let auth_verify_url = "[[=XML(auth_verify_url)]]";
   let get_snps_url = "[[=XML(get_snps_url)]]";
   let file_upload_url = "[[=XML(file_upload_url)]]";
+  let file_info_url = "[[=XML(file_info_url)]]";
+  let obtain_gcs_url = "[[=XML(obtain_gcs_url)]]";
+  let notify_url = "[[=XML(notify_url)]]";
+  let delete_url = "[[=XML(delete_url)]]";
 </script>
 <script type="module" src="js/index.js"></script>
 [[end]]
