@@ -276,9 +276,34 @@ let init = (app) => {
         file_info: app.file_info,
     };
 
+    app.upload_complete_nogcs = function (file_name, file_type){
+        app.vue.uploading = false;
+        app.vue.upload_done = true;
+        app.vue.uploaded_file = file_name;
+    }
+
+    app.upload_file_nogcs = function (event){
+        let self = this;
+        let input = event.target;
+        let file = input.files[0];
+        if (file) {
+            app.vue.uploading = true;
+            let file_type = file.type;
+            let file_name = file.name;
+            let full_url = file_upload_url + "&file_name=" + encodeURIComponent(file_name) + "&file_type" + encodeURIComponent(file_type);
+            let req = new XMLHttpRequest();
+            req.addEventListener("load", function(){
+                app.upload_complete_nogcs(file_name, file_type);
+            });
+            req.open("PUT", full_url, true);
+            req.send(file);
+        }
+    }
+
     // This contains all the methods.
     app.methods = {
         // Complete as you see fit.
+        upload_file_nogcs: app.upload_file_nogcs,
         upload_file: app.upload_file,
         upload_complete: app.upload_complete,
         get_snps: app.get_snps,

@@ -2,6 +2,7 @@ import datetime
 import random
 import os
 import uuid
+import re
 
 from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A
@@ -61,36 +62,6 @@ def complement(alleles):
     else:
         return compDict[alleles[0]], alleles
 
-async def process_snps(file):
-
-    # TODO: Remember to process the raw file first, this doesn't do that yet
-    # TODO: Issue with full length
-    for line in file.split("\n")[0:100]:
-        try:
-            split_line = line.split("\t")
-            rsid = split_line[0]
-            alleles = split_line[1]
-            if (alleles != "--"):
-                allele1 = alleles[0]
-                allele2 = alleles[1]
-
-                opensnp_url = "https://opensnp.org/snps/json/annotation/" + rsid + ".json"
-
-                # Fetch information using requests module
-                # and parse with json module
-                response = requests.Session().get(opensnp_url)
-                data = json.loads(response.text)
-
-                traits = {}
-                for each in data["snp"]["annotations"]["snpedia"]:
-                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])-1]
-
-                
-
-                db.SNP.insert(rsid=rsid, allele1=allele1, allele2=allele2)
-        except Exception as e:
-            print(e)
-
 @action('auth_verify', method=["POST"])
 @action.uses(url_signer.verify(), auth.user)
 def auth_verify():
@@ -118,7 +89,7 @@ def get_SNPs():
     return dict(user_snps=user_snps)
 
 @action('file_upload', method="PUT")
-@action.uses(url_signer.verify(), db, auth.user)
+@action.uses(db, auth.user)
 def file_upload():
     print("entered file upload")
     file_name = request.params.get("file_name")
@@ -127,16 +98,27 @@ def file_upload():
     # Diagnostics
     #print("Uploaded", file_name, "of type", file_type)
     #print("Content:", uploaded_file.read())
-    file = uploaded_file.read().decode('UTF-8')
-    #print("file:", file.split("\n")[0])
 
-    asyncio.run(process_snps(file))
-
+    asyncio.run(process_snps(uploaded_file))
     return "ok"
 
 
-# GCS Handlers
+async def process_snps(file):
+    SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
+    for line in file:
+        line = line.decode('utf8')
+        result = re.search(SEARCH_REGEX, line)
+        if result:
+            rsid = result.group(1)
+            #chromosome = result.group(2)
+            #position = result.group(3)
+            allele1 = result.group(4)
+            allele2 = result.group(5)
+            #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
+            db.SNP.insert(rsid=rsid, allele1=allele1, allele2=allele2)
 
+
+# GCS Handlers
 @action('file_info')
 @action.uses(url_signer.verify(), db, auth.user)
 def file_info():
