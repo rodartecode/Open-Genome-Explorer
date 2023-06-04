@@ -100,12 +100,17 @@ def file_upload():
     #print("Content:", uploaded_file.read())
 
     asyncio.run(process_snps(uploaded_file))
+    print("finished file upload")
     return "ok"
 
 
 async def process_snps(file):
     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
+    i = 0
     for line in file:
+        i += 1
+        if i%10000 == 0:
+            print(f"now processing line number{i}")
         line = line.decode('utf8')
         result = re.search(SEARCH_REGEX, line)
         if result:
