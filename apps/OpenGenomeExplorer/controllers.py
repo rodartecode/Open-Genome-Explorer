@@ -120,7 +120,7 @@ async def process_snps(file):
             allele1 = result.group(4)
             allele2 = result.group(5)
             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
-            db.SNP.insert(rsid=rsid, allele1=allele1, allele2=allele2)
+            db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
 
 
 # GCS Handlers
