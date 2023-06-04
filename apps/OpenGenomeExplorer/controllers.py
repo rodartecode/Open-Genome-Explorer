@@ -110,7 +110,7 @@ async def process_snps(file):
     for line in file:
         i += 1
         if i%10000 == 0:
-            print(f"now processing line number{i}")
+            print(f"now processing line number {i}")
         line = line.decode('utf8')
         result = re.search(SEARCH_REGEX, line)
         if result:
@@ -120,6 +120,8 @@ async def process_snps(file):
             allele1 = result.group(4)
             allele2 = result.group(5)
             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
+
+            # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
             db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
 
 
