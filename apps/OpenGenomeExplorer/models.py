@@ -52,3 +52,5 @@ db.define_table(
     Field('confirmed', 'boolean', default=False))
 
 db.commit()
+
+#db.SNP.truncate()

@@ -21,10 +21,16 @@ from .settings import APP_FOLDER
 
 url_signer = URLSigner(session)
 BUCKET = "/open-genome-explorer"
-GCS_KEY_PATH =  os.path.join(APP_FOLDER, 'private/gcs_keys.json')
-with open(GCS_KEY_PATH) as f:
-    GCS_KEYS = json.load(f) # Load keys
-nqgcs = NQGCS(keys=GCS_KEYS) # Luca's handle to GCS
+
+opensnp_data = {}
+
+with open('good_snp_data.json', 'r') as fd:
+    opensnp_data = json.load(fd)
+
+# GCS_KEY_PATH =  os.path.join(APP_FOLDER, 'private/gcs_keys.json')
+# with open(GCS_KEY_PATH) as f:
+#     GCS_KEYS = json.load(f) # Load keys
+# nqgcs = NQGCS(keys=GCS_KEYS) # Luca's handle to GCS
 
 @action('index')
 @action.uses('index.html', url_signer, db, auth.user)
@@ -53,14 +59,18 @@ def complement(alleles):
                 'C' : 'G' }
     alleles = alleles.upper()
 
-    if(len(alleles) == 2 and "D" not in alleles and "I" not in alleles):
-        return compDict[alleles[0]] + compDict[alleles[1]], compDict[alleles[1]] + compDict[alleles[0]], alleles, alleles[-1::-1]
-    elif("D" in alleles or "I" in alleles and len(alleles) == 2):
-        return alleles, alleles[-1::-1]
-    elif("D" in alleles or "I" in alleles and len(alleles) == 1):
-        return alleles
-    else:
-        return compDict[alleles[0]], alleles
+    try:
+        if(len(alleles) == 2 and "D" not in alleles and "I" not in alleles):
+            return compDict[alleles[0]] + compDict[alleles[1]], compDict[alleles[1]] + compDict[alleles[0]], alleles, alleles[-1::-1]
+        elif("D" in alleles or "I" in alleles and len(alleles) == 2):
+            return alleles, alleles[-1::-1]
+        elif("D" in alleles or "I" in alleles and len(alleles) == 1):
+            return alleles
+        else:
+            return compDict[alleles[0]], alleles
+    except Exception as e:
+        print("In complement(), alleles:", alleles)
+        print("Exception in complement():", e)
 
 @action('auth_verify', method=["POST"])
 @action.uses(url_signer.verify(), auth.user)
@@ -109,20 +119,55 @@ async def process_snps(file):
     i = 0
     for line in file:
         i += 1
+        line = line.decode('utf8')
+        rsid = ""
+        allele1 = ""
+        allele2 = ""
+        result = re.search(SEARCH_REGEX, line)
         if i%10000 == 0:
             print(f"now processing line number {i}")
-        line = line.decode('utf8')
-        result = re.search(SEARCH_REGEX, line)
-        if result:
-            rsid = result.group(1)
-            #chromosome = result.group(2)
-            #position = result.group(3)
-            allele1 = result.group(4)
-            allele2 = result.group(5)
+            print("line:", line)
+            print("result:", result)
+            #print(opensnp_data['rs6684865'])
+        if result is None:
+            entry = line.replace("\n", "").replace("\r", "").split("\t")
+            rsid = entry[0]
+            if len(entry[1]) == 2:
+                allele1 = entry[1][0]
+                allele2 = entry[1][1]
+        
+        if result or allele1 != "":
+            if rsid == "":
+                rsid = result.group(1)
+                #chromosome = result.group(2)
+                #position = result.group(3)
+                allele1 = result.group(4)
+                allele2 = result.group(5)
             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
 
             # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
-            db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
+            if rsid in opensnp_data and allele1 != "-" and allele2 != "-":
+                #print("entered for rsid:", rsid)
+                weight_of_evidence = opensnp_data[rsid]['weight_of_evidence']
+                url = opensnp_data[rsid]['url']
+
+                traits = {}
+
+                summary = ""
+
+                for each in opensnp_data[rsid]["annotations"]["snpedia"]:
+                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])-1]
+                if len(traits) != 0:
+                    #print("traits:", traits)
+                    #print("Alleles:", allele1 + allele2)
+                    for key in traits:
+                        if key in complement(allele1+allele2):
+                            #print(traits[key])
+                            summary = traits[key]
+
+                db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
+    print("finished processing SNPS!")
+
 
 
 # GCS Handlers
@@ -212,7 +257,7 @@ def delete_path(file_path):
     if file_path:
         try:
             bucket, id = os.path.split(file_path)
-            nqgcs.delete(bucket[1:], id)
+            #nqgcs.delete(bucket[1:], id)
         except Exception as e:
             print("Error deleting", file_path, ":", e)
 
