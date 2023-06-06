@@ -1,0 +1,35 @@
+/* Styles for the landing page */
+@import url('index.css');
+
+.hero.is-light {
+  background-color: #8fb4be
+}
+
+.button.is-dark {
+  background-color: #426872
+}
+
+.button.is-dark:hover {
+  background-color: #2f4a51
+}
+
+.title.overview {
+  font-size: 32px; 
+  font-family: Helvetica; 
+  margin-bottom: 40px;
+}
+
+.subtitle.overview {
+  font-size: 22px; 
+  font-family: Arial;
+}
+
+.title.description {
+  font-size: 24px; 
+  font-family: Helvetica; 
+  margin-bottom: 40px
+}
+
+.subtitle.description {
+  font-size: 20px;
+}

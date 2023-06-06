@@ -6,7 +6,10 @@
 }
 </style>
 
+[[if not globals().get('user'):]]
+  [[include 'landing.html']]
 
+[[else:]]
 <div class="section" id="vue-target" v-cloak>
   <div class="field has-addons">
     <p class="control">
@@ -94,3 +97,5 @@
 </script>
 <script type="module" src="js/index.js"></script>
 [[end]]
+
+[[pass]]

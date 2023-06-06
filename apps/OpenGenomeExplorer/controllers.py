@@ -27,7 +27,7 @@ with open(GCS_KEY_PATH) as f:
 nqgcs = NQGCS(keys=GCS_KEYS) # Luca's handle to GCS
 
 @action('index')
-@action.uses('index.html', url_signer, db, auth.user)
+@action.uses('index.html', url_signer, db, auth)
 def index():
     auth_verify_url = URL('auth_verify', signer=url_signer)
     get_snps_url = URL('get_SNPs', signer=url_signer)
