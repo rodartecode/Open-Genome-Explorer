@@ -10,11 +10,29 @@ tbd
 
 ## Initial Setup
 
-This project requires a correctly configured Google Cloud Service bucket.
+### Install Dependencies
+
+From the root directory run
+
+```bash
+pip -r requirements.txt
+```
+
+### Run
+
+From the root directory run the app with
+
+```bash
+py4web run apps
+```
+
+### Using GCS
+
+It is possible to set up a Google Cloud Service bucket to hold the somewhat sizable files and allow scalability. To do this you must first set up a GCS account and do some provisioning.
 
 > Note: Instructions taken from <https://github.com/learn-py4web/gcs_file_storage>
 
-### Configure the uploads bucket on GCS
+#### Configure the upload bucket on GCS
 
 * Create a [Google Cloud Project](https://console.cloud.google.com), and
   [configure billing](https://console.cloud.google.com/billing).
@@ -31,18 +49,4 @@ This project requires a correctly configured Google Cloud Service bucket.
 gsutil cors set /path/to/cors_json_file.json gs://bucketname
 ```
 
-### Install Dependencies
-
-From the root directory run
-
-```bash
-pip -r requirements.txt
-```
-
-### Run
-
-From the root directory run the app with
-
-```bash
-py4web run apps
-```
+Finally, you must set `USE_GCS` to `True` in the `settings.py` file

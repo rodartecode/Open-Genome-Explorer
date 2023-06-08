@@ -3,39 +3,35 @@ import random
 import os
 import uuid
 import re
+import json
 
 from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A
 from .common import db, session, T, cache, auth, logger, authenticated, unauthenticated, flash
 from py4web.utils.url_signer import URLSigner
 from .models import get_username, get_user_email
-import firebase_admin
-from firebase_admin import auth as fb_auth
-from firebase_admin import credentials
 import pickle
 import json, requests, threading, queue, time, string
 import asyncio
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
-from .settings import APP_FOLDER
+from .settings import APP_FOLDER, USE_GCS
 
 url_signer = URLSigner(session)
-BUCKET = "/open-genome-explorer"
-
 opensnp_data = {}
+if USE_GCS:
+    BUCKET = "/open-genome-explorer"
+    GCS_KEY_PATH =  os.path.join(APP_FOLDER, 'private/gcs_keys.json')
+    with open(GCS_KEY_PATH) as f:
+        GCS_KEYS = json.load(f) # Load keys
+    nqgcs = NQGCS(keys=GCS_KEYS) # Luca's handle to GCS
 
-with open('good_snp_data.json', 'r') as fd:
-    opensnp_data = json.load(fd)
-
-# GCS_KEY_PATH =  os.path.join(APP_FOLDER, 'private/gcs_keys.json')
-# with open(GCS_KEY_PATH) as f:
-#     GCS_KEYS = json.load(f) # Load keys
-# nqgcs = NQGCS(keys=GCS_KEYS) # Luca's handle to GCS
+with open('good_snp_data.json', 'r') as f:
+  good_snps = json.load(f)
 
 @action('index')
 @action.uses('index.html', url_signer, db, auth.user)
 def index():
-    auth_verify_url = URL('auth_verify', signer=url_signer)
     get_snps_url = URL('get_SNPs', signer=url_signer)
     file_upload_url = URL('file_upload', signer=url_signer)
     # GCS links
@@ -45,11 +41,11 @@ def index():
     delete_url = URL('notify_delete', signer=url_signer)
     return dict(file_upload_url=file_upload_url,
                 get_snps_url=get_snps_url,
-                auth_verify_url=auth_verify_url,
                 file_info_url=file_info_url,
                 obtain_gcs_url=obtain_gcs_url,
                 notify_url=notify_url,
-                delete_url=delete_url)
+                delete_url=delete_url,
+                use_gcs=USE_GCS)
 
 # Code provided by Valeska
 def complement(alleles):
@@ -58,7 +54,6 @@ def complement(alleles):
                 'T' : 'A',
                 'C' : 'G' }
     alleles = alleles.upper()
-
     try:
         if(len(alleles) == 2 and "D" not in alleles and "I" not in alleles):
             return compDict[alleles[0]] + compDict[alleles[1]], compDict[alleles[1]] + compDict[alleles[0]], alleles, alleles[-1::-1]
@@ -72,26 +67,6 @@ def complement(alleles):
         print("In complement(), alleles:", alleles)
         print("Exception in complement():", e)
 
-@action('auth_verify', method=["POST"])
-@action.uses(url_signer.verify(), auth.user)
-def auth_verify():
-    username = get_username() or ""
-    uid = str(auth.user_id) + ":" + username
-
-    import os
-    print("CWD:", os.getcwd())
-
-    cred = credentials.Certificate('./service-account.json')
-    default_app = firebase_admin.initialize_app(cred)
-
-    custom_token = fb_auth.create_custom_token(uid)
-
-    firebase_admin.delete_app(default_app)
-
-    print("custom_token:", custom_token)
-
-    return dict(custom_token=custom_token)
-
 @action('get_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_SNPs():
@@ -101,18 +76,10 @@ def get_SNPs():
 @action('file_upload', method="PUT")
 @action.uses(db, auth.user)
 def file_upload():
-    print("entered file upload")
-    file_name = request.params.get("file_name")
-    file_type = request.params.get("file_type")
+    # This is the main file upload entrypoint when storing our files in memory
     uploaded_file = request.body # This is a file, you can read it.
-    # Diagnostics
-    #print("Uploaded", file_name, "of type", file_type)
-    #print("Content:", uploaded_file.read())
-
     asyncio.run(process_snps(uploaded_file))
-    print("finished file upload")
     return "ok"
-
 
 async def process_snps(file):
     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
@@ -169,7 +136,28 @@ async def process_snps(file):
     print("finished processing SNPS!")
 
 
+async def process_snps2(file):
+    SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
+    i = 0
+    for line in file:
+        i += 1
+        if i%100000 == 0:
+            print(f"now processing line number {i}")
+        line = line.decode('utf8')
+        result = re.search(SEARCH_REGEX, line)
+        if result:
+            rsid = result.group(1)
+            #chromosome = result.group(2)
+            #position = result.group(3)
+            allele1 = result.group(4)
+            allele2 = result.group(5)
+            #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
+            if rsid in good_snps:
+                # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
+                db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
+                return
 
+################
 # GCS Handlers
 @action('file_info')
 @action.uses(url_signer.verify(), db, auth.user)
@@ -244,6 +232,10 @@ def notify_upload():
         file_date = now,
         confirmed = True
     )
+
+    file = nqgcs.read(BUCKET, file_path)
+    asyncio.run(process_snps2(str(file)))
+
     return dict(download_url = gcs_url(GCS_KEYS, file_path, verb="GET"), file_date=now)
 
 @action("notify_delete", method="POST")
@@ -257,7 +249,8 @@ def delete_path(file_path):
     if file_path:
         try:
             bucket, id = os.path.split(file_path)
-            #nqgcs.delete(bucket[1:], id)
+            if USE_GCS:
+                nqgcs.delete(bucket[1:], id)
         except Exception as e:
             print("Error deleting", file_path, ":", e)
 
@@ -273,3 +266,6 @@ def mark_possible_upload(file_path):
         file_path = file_path,
         confirmed = False
     )
+
+# End GCS Handlers
+##################
