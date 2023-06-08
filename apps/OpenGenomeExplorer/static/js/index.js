@@ -1,44 +1,7 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js'
-
-// Add Firebase products that you want to use
-import { getAuth, onAuthStateChanged, signInWithCustomToken, browserSessionPersistence  } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js'
-import { getDatabase } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js'
-
-// Import the functions you need from the SDKs you need
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-apiKey: "AIzaSyCezKBpHBgfohekmUX6HdsHTnlcPd-Ss2g",
-authDomain: "open-genome-explorer.firebaseapp.com",
-databaseURL: "https://open-genome-explorer-default-rtdb.firebaseio.com",
-projectId: "open-genome-explorer",
-storageBucket: "open-genome-explorer.appspot.com",
-messagingSenderId: "66972289733",
-appId: "1:66972289733:web:0378adea8262164c2afeac",
-measurementId: "G-R4X3QLPK7V"
-};
-
-// Initialize Firebase
-const firebase_app = initializeApp(firebaseConfig);
-
-const fb_database = getDatabase();
-const auth = getAuth();
-
-// console.log("auth:", auth)
-
-// This will be the object that will contain the Vue attributes
-// and be used to initialize it.
 let app = {};
 
-
-// Given an empty app object, initializes it filling its attributes,
-// creates a Vue instance, and then initializes the Vue instance.
 let init = (app) => {
 
-    // This is the Vue data.
     app.data = {
         user: null,
         user_snps: [],
@@ -58,10 +21,10 @@ let init = (app) => {
         download_url: "",
         deleting: false,
         delete_done: false,
+        use_gcs: false,
     };
 
     app.enumerate = (a) => {
-        // This adds an _idx field to each element of the array.
         let k = 0;
         a.map((e) => {e._idx = k++;});
         return a;
@@ -106,7 +69,7 @@ let init = (app) => {
         app.vue.download_url = r.data.download_url;
     }
 
-    app.upload_file = function (event) {
+    app.upload_file_gcs = function (event) {
         let input = event.target;
         let file = input.files[0];
         if (file) {
@@ -230,13 +193,6 @@ let init = (app) => {
 
     // Thank you Luca and Massimo
 
-    // app.upload_complete = function (file_name, file_type) {
-    //     app.vue.uploading = false;
-    //     app.vue.upload_done = true;
-    //     app.vue.uploaded_file = file_name;
-    //     app.get_snps();
-    // };
-
     app.retrieve_snps = function (page_num) {
         // TODO: Check for issues with str types, use parseInt
         if (page_num < 0 || ((page_num * app.vue.page_size) >= (app.vue.user_snps.length) )) {
@@ -283,7 +239,6 @@ let init = (app) => {
     }
 
     app.upload_file_nogcs = function (event){
-        let self = this;
         let input = event.target;
         let file = input.files[0];
         if (file) {
@@ -300,11 +255,9 @@ let init = (app) => {
         }
     }
 
-    // This contains all the methods.
     app.methods = {
-        // Complete as you see fit.
         upload_file_nogcs: app.upload_file_nogcs,
-        upload_file: app.upload_file,
+        upload_file_gcs: app.upload_file_gcs,
         upload_complete: app.upload_complete,
         get_snps: app.get_snps,
         retrieve_snps: app.retrieve_snps,
@@ -312,14 +265,12 @@ let init = (app) => {
         download_file: app.download_file,
     };
 
-    // This creates the Vue instance.
     app.vue = new Vue({
         el: "#vue-target",
         data: app.data,
         methods: app.methods
     });
 
-    // And this initializes it.
     app.init = () => {
         // onAuthStateChanged(auth, (user) => {
         //     if (user) {
@@ -355,10 +306,7 @@ let init = (app) => {
 
     };
 
-    // Call to the initializer.
     app.init();
 };
 
-// This takes the (empty) app object, and initializes it,
-// putting all the code i
 init(app);

@@ -8,6 +8,9 @@ This file is provided as an example:
 import os
 from py4web.core import required_folder
 
+# Flag whether we are storing our files on GCS or in memory
+USE_GCS = False
+
 # db settings
 APP_FOLDER = os.path.dirname(__file__)
 APP_NAME = os.path.split(APP_FOLDER)[-1]
