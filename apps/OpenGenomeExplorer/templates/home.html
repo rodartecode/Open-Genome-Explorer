@@ -45,7 +45,7 @@
     </div>
   </div>
 
-  <div v-if="user_snps.length > 1" id="SNPs">
+  <div v-if="user_snps.length >= 1" id="SNPs">
     <div class="table-container">
       <table class="table">
         <!-- Your table content -->
@@ -70,13 +70,13 @@
           </tr>
         </tfoot>
         <tbody>
-          <tr v-for="SNP in user_snps.slice(start_index, end_index)">
+          <tr v-for="SNP in display_snps.slice(start_index, end_index)">
             <td>{{SNP.rsid}}</td>
             <td>{{SNP.allele1}}</td>
             <td>{{SNP.allele2}}</td>
             <td>{{SNP.summary}}</td>
             <td>{{SNP.weight_of_evidence}}</td>
-            <td><a :href='SNP.url'>{{SNP.url}}</a></td>
+            <td><a :href='SNP.url' target="_blank">{{SNP.url}}</a></td>
           </tr>
         </tbody>
       </table>
