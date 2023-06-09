@@ -30,8 +30,15 @@ with open('good_snp_data.json', 'r') as f:
   good_snps = json.load(f)
 
 @action('index')
-@action.uses('index.html', url_signer, db, auth)
+@action.uses('index.html', url_signer)
 def index():
+    if auth.current_user:
+        redirect(URL('home', signer=url_signer))
+    return dict()
+
+@action('home')
+@action.uses('home.html', url_signer, db, auth.user)
+def home():
     get_snps_url = URL('get_SNPs', signer=url_signer)
     file_upload_url = URL('file_upload', signer=url_signer)
     # GCS links
