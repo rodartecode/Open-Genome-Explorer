@@ -26,13 +26,13 @@ From the root directory run the app with
 py4web run apps
 ```
 
-### Using GCS
+### Using GAE
 
-It is possible to set up a Google Cloud Service bucket to hold the somewhat sizable files and allow scalability. To do this you must first set up a GCS account and do some provisioning.
+With some configuration it is possible to deploy this app on Google App Engine. This app uses a Google Cloud MySQLDB for relational db data, and Google Cloud Service bucket to hold the somewhat sizable files and allow scalability. To do this you must first set up a GCS account and do some provisioning.
+
+#### Configure the file upload bucket on GCS
 
 > Note: Instructions taken from <https://github.com/learn-py4web/gcs_file_storage>
-
-#### Configure the upload bucket on GCS
 
 * Create a [Google Cloud Project](https://console.cloud.google.com), and
   [configure billing](https://console.cloud.google.com/billing).
@@ -49,4 +49,14 @@ It is possible to set up a Google Cloud Service bucket to hold the somewhat siza
 gsutil cors set /path/to/cors_json_file.json gs://bucketname
 ```
 
-Finally, you must set `USE_GCS` to `True` in the `settings.py` file
+#### Initialize Google App Engine Project and DB
+
+coming soon but mostly adapted from <https://learn-py4web.github.io/unit20.html>
+
+#### Manually Migrate the DB
+
+In Google App Engine the database tables need to be manually created so that PYdal can use them.
+
+```SQL
+coming soon
+```

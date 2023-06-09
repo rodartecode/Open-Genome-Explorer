@@ -15,7 +15,7 @@ import json, requests, threading, queue, time, string
 import asyncio
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
-from .settings import APP_FOLDER, USE_GCS
+from .settings import APP_FOLDER
 
 url_signer = URLSigner(session)
 opensnp_data = {}
@@ -49,7 +49,7 @@ def home():
     delete_url = URL('notify_delete', signer=url_signer)
     
     if os.environ.get("GAE_ENV"):
-        USE_GCS = True
+        USE_GCS = False # Should be true but just for testing
     else:
         USE_GCS = False
     return dict(search_snps_url=search_snps_url,
