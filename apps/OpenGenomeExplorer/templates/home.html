@@ -51,22 +51,22 @@
         <!-- Your table content -->
         <thead>
           <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
+            <th @click="sort_table(0)"><abbr title="rsid">rsid</abbr></th>
+            <th @click="sort_table(1)"><abbr title="Allele1">allele1</abbr></th>
+            <th @click="sort_table(2)"><abbr title="Allele2">allele2</abbr></th>
+            <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
+            <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
           </tr>
         </thead>
         <tfoot>
           <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
+            <th @click="sort_table(0)"><abbr title="rsid">rsid</abbr></th>
+            <th @click="sort_table(1)"><abbr title="Allele1">allele1</abbr></th>
+            <th @click="sort_table(2)"><abbr title="Allele2">allele2</abbr></th>
+            <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
+            <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
           </tr>
         </tfoot>
         <tbody>
@@ -100,6 +100,7 @@
   let obtain_gcs_url = "[[=XML(obtain_gcs_url)]]";
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
+  let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
   let use_gcs = use_gcs || false;
 </script>
 <script type="module" src="js/index.js"></script>

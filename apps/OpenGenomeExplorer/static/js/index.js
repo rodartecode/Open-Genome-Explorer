@@ -25,6 +25,7 @@ let init = (app) => {
         search_summary: "",
         search_rsid: "",
         row_clicked: false,
+        column_sorted: null,
     };
 
     app.enumerate = (a) => {
@@ -269,6 +270,39 @@ let init = (app) => {
         }
     }
 
+    // Sort the table by the clicked attribute
+    app.sort_table = function (column_num) {
+        // Sortable attributes
+        let attrs = [
+            "rsid", 
+            "allele1", 
+            "allele2", 
+            "summary", 
+            "weight_of_evidence", 
+            "url"
+        ];
+        let sort = "desc";
+        let attr = attrs[column_num];
+
+        // First sort is always descending; If already sorted, then sort by ascending
+        if (app.vue.column_sorted == attr) {
+            app.vue.column_sorted = null;
+            sort = "asc";
+        } else {
+            app.vue.column_sorted = attrs[column_num];
+        }
+
+        // Request sorted SNPs
+        axios.get(get_sorted_snps_url, {params: {
+            attr: attrs[column_num],
+            sort: sort,
+        }})
+        .then(function(result) {
+            app.vue.user_snps = app.enumerate(result.data.user_snps);
+            console.log(app.vue.user_snps);
+        })
+    }
+
     app.methods = {
         upload_file_nogcs: app.upload_file_nogcs,
         upload_file_gcs: app.upload_file_gcs,
@@ -278,6 +312,7 @@ let init = (app) => {
         delete_file: app.delete_file,
         download_file: app.download_file,
         search: app.search,
+        sort_table: app.sort_table,
     };
 
     app.vue = new Vue({
