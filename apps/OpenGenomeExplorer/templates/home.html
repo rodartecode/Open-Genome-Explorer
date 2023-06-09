@@ -36,6 +36,15 @@
     </p>
   </div>
 
+  <div class="columns is-mobile">
+    <div class="field column is-mobile">
+      <input class="input" placeholder="Search rsids" v-model="search_rsid" @keyup="search"></input>
+    </div>
+    <div class="field column is-mobile">
+      <input class="input" placeholder="Search in summary" v-model="search_summary" @keyup="search"></input>
+    </div>
+  </div>
+
   <div v-if="user_snps.length > 1" id="SNPs">
     <div class="table-container">
       <table class="table">
@@ -84,6 +93,7 @@
 [[block page_scripts]]
 <!-- Loads the index-specific js for Vue -->
 <script>
+  let search_snps_url = "[[=XML(search_snps_url)]]";
   let get_snps_url = "[[=XML(get_snps_url)]]";
   let file_upload_url = "[[=XML(file_upload_url)]]";
   let file_info_url = "[[=XML(file_info_url)]]";
