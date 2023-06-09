@@ -1,145 +1,54 @@
 [[extend 'layout.html']]
 
-<style>
-[v-cloak] {
-     display: none;
-}
-</style>
+<head>
+  <base href="[[=URL('static')]]/">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/bulma.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.css">
+</head>
 
-
-<div class="section" id="vue-target" v-cloak>
-  <div class="field has-addons">
-    <p class="control">
-      <div v-if="!upload_done" class="file is-info">
-        <label class="file-label">
-          <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
-          <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
-          <span class="file-cta">
-            <span class="file-icon">
-              <i v-if="uploading" class="fa fa-spinner fa-pulse fa-fw"></i>
-              <i v-else class="fa fa-upload fa-fw"></i>
-            </span>
-            <span class="file-label">
-              <span v-if="!uploading">Upload new file</span>
-            </span>
-          </span>
-        </label>
+<body>
+  <section class="hero is-light">
+    <div class="hero-body">
+      <div class="columns is-centered is-variable is-8 my-4">
+        <div class="column is-one-third">
+          <p class="title overview">Welcome to Open Genome Explorer!</p>
+          <p class="subtitle overview">
+            Open Genome Explorer is a web app that utilizes the genetic information you upload to provide insights about 
+            your genome. It interfaces with open source SNP databases, such as OpenSNP, to display information 
+            about your genetic risk factors based on allele combinations.
+          </p>
+        </div>
+        <div class="column is-one-quarter is-flex is-align-items-center">
+          <img src="images/logo.PNG">
+        </div>
       </div>
-    </p>
-    <p class="control">
-      <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
-        <span class="icon">
-          <i class="fa fa-download fa-fw"></i>
-        </span>
-        <span>{{file_info}}</span>
-      </button>
-      <button v-else class="button is-static">No file uploaded</button>
-    </p>
-  </div>
-
-  <div class="columns is-mobile">
-    <div class="field column is-mobile">
-      <input class="input" placeholder="Search rsids" v-model="search_rsid" @keyup="search"></input>
+      <div class="has-text-centered">
+        <a class="button is-medium is-dark" href="[[=URL('home')]]">Get Started</a>
+      </div>
     </div>
-    <div class="field column is-mobile">
-      <input class="input" placeholder="Search in summary" v-model="search_summary" @keyup="search"></input>
-    </div>
-  </div>
+  </section>
 
-  <div v-if="row_clicked">
-    <div class="table-container">
-      <table class="table">
-        <!-- Your table content -->
-        <thead>
-          <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
-          </tr>
-        </tfoot>
-        <tbody>
-          <tr v-for="SNP in user_snps.slice(start_index, end_index)">
-            <td>{{SNP.rsid}}</td>
-            <td>{{SNP.allele1}}</td>
-            <td>{{SNP.allele2}}</td>
-            <td>{{SNP.summary}}</td>
-            <td>{{SNP.weight_of_evidence}}</td>
-            <td><a :href='SNP.url'>{{SNP.url}}</a></td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="columns is-centered is-variable is-8" style="margin-top: 30px">
+    <div class="column is-one-fifth has-text-centered">
+      <p class="title description">
+        <strong>Create an account</strong>
+      </p>
+      <p class="subtitle description">Sign up or log in using your Google account to save and access your genomic data at any time</p>
+    </div>
+    <div class="column is-one-fifth has-text-centered">
+      <p class="title description">
+        <strong>Upload your genomic information</strong>
+      </p>
+      <p class="subtitle description">Share your genetic data from sources like 23&me and compare your information to open source databases</p>
+    </div>
+    <div class="column is-one-fifth has-text-centered">
+      <p class="title description">
+        <strong>Explore your genome</strong>
+      </p>
+      <p class="subtitle description">Discover valuable insights and understanding about your health traits and potential risk factors</p>
     </div>
   </div>
-
-  <div v-if="user_snps.length >= 1 && !row_clicked" id="SNPs">
-    <div class="table-container">
-      <table class="table">
-        <!-- Your table content -->
-        <thead>
-          <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
-          </tr>
-        </tfoot>
-        <tbody>
-          <tr v-for="SNP in user_snps.slice(start_index, end_index)">
-            <td>{{SNP.rsid}}</td>
-            <td>{{SNP.allele1}}</td>
-            <td>{{SNP.allele2}}</td>
-            <td>{{SNP.summary}}</td>
-            <td>{{SNP.weight_of_evidence}}</td>
-            <td><a :href='SNP.url'>{{SNP.url}}</a></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <nav class="pagination" role="navigation" aria-label="pagination">
-      <a class="pagination-previous" @click="retrieve_snps(cur_page_num-1)">Previous</a>
-      <a class="pagination-next" @click="retrieve_snps(cur_page_num+1)">Next page</a>
-    </nav>
-  </div>
-</div>
-
-
-[[block page_scripts]]
-<!-- Loads the index-specific js for Vue -->
-<script>
-  let search_snps_url = "[[=XML(search_snps_url)]]";
-  let get_snps_url = "[[=XML(get_snps_url)]]";
-  let file_upload_url = "[[=XML(file_upload_url)]]";
-  let file_info_url = "[[=XML(file_info_url)]]";
-  let obtain_gcs_url = "[[=XML(obtain_gcs_url)]]";
-  let notify_url = "[[=XML(notify_url)]]";
-  let delete_url = "[[=XML(delete_url)]]";
-  //let use_gcs = use_gcs || false;
-</script>
-<script type="module" src="js/index.js"></script>
-[[end]]
+</body>

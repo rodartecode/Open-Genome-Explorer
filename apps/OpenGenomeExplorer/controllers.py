@@ -30,8 +30,15 @@ with open('good_snp_data.json', 'r') as f:
   opensnp_data = json.load(f)
 
 @action('index')
-@action.uses('index.html', url_signer, db, auth.user)
+@action.uses('index.html', auth)
 def index():
+    if auth.current_user:
+        redirect(URL('home'))
+    return dict()
+
+@action('home')
+@action.uses('home.html', url_signer, db, auth.user)
+def home():
     search_snps_url = URL('search_SNPs', signer=url_signer)
     get_snps_url = URL('get_SNPs', signer=url_signer)
     file_upload_url = URL('file_upload', signer=url_signer)
@@ -195,28 +202,6 @@ def process_snps(file):
 
                 db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
     print("finished processing SNPS!")
-
-
-# async def process_snps2(file):
-#     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
-#     i = 0
-#     for line in file:
-#         i += 1
-#         if i%100000 == 0:
-#             print(f"now processing line number {i}")
-#         line = line.decode('utf8')
-#         result = re.search(SEARCH_REGEX, line)
-#         if result:
-#             rsid = result.group(1)
-#             #chromosome = result.group(2)
-#             #position = result.group(3)
-#             allele1 = result.group(4)
-#             allele2 = result.group(5)
-#             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
-#             if rsid in good_snps:
-#                 # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
-#                 db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
-#                 return
 
 ################
 # GCS Handlers

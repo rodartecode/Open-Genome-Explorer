@@ -6,3 +6,5 @@ databases/*
 !databases/README.md
 private/*
 */.service/*
+venv/
+password.txt
