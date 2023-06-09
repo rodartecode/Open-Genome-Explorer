@@ -9,7 +9,7 @@ from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A
 from .common import db, session, T, cache, auth, logger, authenticated, unauthenticated, flash
 from py4web.utils.url_signer import URLSigner
-from .models import get_username, get_user_email
+from .models import get_username, get_user_email, get_user_id, clear_db
 import pickle
 import json, requests, threading, queue, time, string
 import asyncio
@@ -208,7 +208,7 @@ def process_snps(file):
                 summary = ""
 
                 for each in opensnp_data[rsid]["annotations"]["snpedia"]:
-                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])-1]
+                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])]
                 if len(traits) != 0:
                     #print("traits:", traits)
                     #print("Alleles:", allele1 + allele2)
@@ -220,7 +220,15 @@ def process_snps(file):
                             allele2 = key[1]
                 rsid = str(rsid.strip().replace("\n", ""))
 
-                db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
+                db.SNP.update_or_insert(
+                    (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
+                    summary=summary,
+                    url=url, 
+                    rsid=rsid, 
+                    allele1=allele1, 
+                    allele2=allele2, 
+                    weight_of_evidence=weight_of_evidence
+                )
     print("finished processing SNPS!")
 
 ################
