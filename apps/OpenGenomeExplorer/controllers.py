@@ -1,18 +1,14 @@
 import datetime
-import random
 import os
 import uuid
 import re
 import json
 
-from py4web import action, request, abort, redirect, URL
-from yatl.helpers import A
-from .common import db, session, T, cache, auth, logger, authenticated, unauthenticated, flash
+from py4web import action, request, redirect, URL
+from .common import db, session, auth
 from py4web.utils.url_signer import URLSigner
-from .models import get_username, get_user_email
-import pickle
-import json, requests, threading, queue, time, string
-import asyncio
+from .models import get_user_email
+import json, requests, threading
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
 from .settings import APP_FOLDER
@@ -49,7 +45,7 @@ def home():
     delete_url = URL('notify_delete', signer=url_signer)
     
     if os.environ.get("GAE_ENV"):
-        USE_GCS = False # Should be true but just for testing
+        USE_GCS = True # Should be true but just for testing
     else:
         USE_GCS = False
     return dict(search_snps_url=search_snps_url,
@@ -182,7 +178,6 @@ def process_snps(file):
                 allele2 = result.group(5)
             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
 
-            # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
             if rsid in opensnp_data and allele1 != "-" and allele2 != "-":
                 #print("entered for rsid:", rsid)
                 weight_of_evidence = opensnp_data[rsid]['weight_of_evidence']
@@ -209,34 +204,13 @@ def process_snps(file):
     print("finished processing SNPS!")
 
 
-async def process_snps2(file):
-    SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
-    i = 0
-    for line in file.split(b"\n"):
-        i += 1
-        if i%100000 == 0:
-            print(f"now processing line number {i}")
-        line = line.decode('utf8')
-        result = re.search(SEARCH_REGEX, line)
-        if result:
-            rsid = result.group(1)
-            #chromosome = result.group(2)
-            #position = result.group(3)
-            allele1 = result.group(4)
-            allele2 = result.group(5)
-            #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
-            if rsid in good_snps:
-                # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
-                db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
-                return
-
 ################
 # GCS Handlers
 @action('file_info')
 @action.uses(url_signer.verify(), db, auth.user)
 def file_info():
     row = db(db.SNP_File.owner == get_user_email()).select().first()
-
+    # each user can only have one file
     if row is not None and not row.status == "ready":
         delete_path(row.file_path)
         row.delete_record()
@@ -259,6 +233,7 @@ def file_info():
 @action('obtain_gcs', method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def obtain_gcs():
+    # handles request from client to make a request to GCS
     action = request.json.get("action")
     if action == "PUT":
         mimetype = request.json.get("mimetype")
@@ -266,7 +241,9 @@ def obtain_gcs():
         extension = os.path.splitext(file_name)[1]
         file_path = os.path.join(BUCKET, str(uuid.uuid1()) + extension)
         mark_possible_upload(file_path)
+        # This signed URL will allow the client to upload the file to GCS
         signed_url = gcs_url(GCS_KEYS, file_path, verb="PUT", content_type=mimetype)
+
         return dict(
             signed_url = signed_url,
             file_path = file_path
@@ -285,6 +262,8 @@ def obtain_gcs():
 @action("notify_upload", method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def notify_upload():
+    # handles request from client to notify server that file has been uploaded
+    # to GCS successfully
     file_type = request.json.get("file_type")
     file_path = request.json.get("file_path")
     file_name = request.json.get("file_name")
@@ -307,7 +286,9 @@ def notify_upload():
     )
 
     file = nqgcs.read(BUCKET, file_path)
-    file = preprocess_file(str(file))
+    # at this point file is a bytes object
+    file = preprocess_file(file.split(b"\n"))
+    # now check for SNP matches
     process_snps(file)
 
     return dict(download_url = gcs_url(GCS_KEYS, file_path, verb="GET"), file_date=now)
@@ -315,6 +296,7 @@ def notify_upload():
 @action("notify_delete", method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def notify_delete():
+    # handles request from client to notify server that file has been deleted
     file_path = request.json.get("file_path")
     db((db.SNP_File.file_path == file_path) & (db.SNP_File.owner == get_user_email())).delete()
     return "ok"
@@ -323,12 +305,13 @@ def delete_path(file_path):
     if file_path:
         try:
             bucket, id = os.path.split(file_path)
-            if os.environ.get("GAE_ENV"):
+            if os.environ.get("GAE_ENV"): # we're only using GCS in production
                 nqgcs.delete(bucket[1:], id)
         except Exception as e:
             print("Error deleting", file_path, ":", e)
 
 def delete_previous_uploads():
+    # We do this because we only want to keep one file per user
     previous = db(db.SNP_File.owner == get_user_email()).select()
     for row in previous:
         delete_path(row.file_path)
@@ -343,3 +326,64 @@ def mark_possible_upload(file_path):
 
 # End GCS Handlers
 ##################
+
+def check_opensnp_json_with_rsid(rsid):
+    # Makes a synchronous request to the OpenSNP API to check if the rsid exists
+    # If the rsid has new information, it will be updated in the database
+    # OpenSNP JSON-API documentation:
+    # https://github.com/openSNP/snpr/wiki/JSON-API
+
+    # Make the request
+    url = f"http://opensnp.org/snps/json/annotation/{rsid}.json"
+    response = requests.get(url)
+    # Response should contain an object containing 
+    #  - rsid
+    #  - chromosome
+    #  - position
+    #  - allele_frequency
+    #  - genotype_frequency
+    #  - annotations (list of lists of annotations)
+    data = response.json()
+    data = data['snp']
+    # Count the number of annotations
+    annotations = 0
+    for annotation_source in data['annotations']:
+        annotations += len(annotation_source)
+    if annotations == 0:
+        return False
+    # Update the database
+    weight_of_evidence = calculate_weight_of_evidence(data['annotations'])
+    rsid_id = db.RSID.update_or_insert(rsid=rsid)
+    url = f"https://opensnp.org/snps/{rsid}"
+    for genotype in data['genotype_frequency']:
+        # Genotypes from this API will always be 2 char strings
+        allele1 = genotype[0]
+        allele2 = genotype[1]
+        db.RSID_Info.update_or_insert(
+            rsid=rsid_id,
+            url=url,
+            allele1=allele1,
+            allele2=allele2,
+            weight_of_evidence=weight_of_evidence
+        )
+    return data
+
+
+def calculate_weight_of_evidence(publications):
+    # publications is a dict with name of each publisher as key and
+    # a list of annotations that they've published as the value
+    #
+    # according to opensnp weight of evidence is calculated as follows:
+    # each snpedia entry is worth 5 points
+    # plos, pgp_annotations, and genome_gov_publications are worth 2 points
+    # all other annotations are worth 1 point
+    # the total weight of evidence is the sum of all points
+    weight_of_evidence = 0
+    for publisher, _ in publications:
+        if publisher == 'snpedia':
+            weight_of_evidence += 5
+        elif publisher in ['plos', 'pgp_annotations', 'genome_gov_publications']:
+            weight_of_evidence += 2
+        else:
+            weight_of_evidence += 1
+    return weight_of_evidence
