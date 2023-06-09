@@ -249,6 +249,7 @@ let init = (app) => {
         app.vue.upload_done = true;
         app.vue.uploaded_file = file_name;
         //get_snps();
+        window.location.reload();
     }
 
     app.upload_file_nogcs = function (event){
@@ -256,6 +257,7 @@ let init = (app) => {
         let file = input.files[0];
         if (file) {
             app.vue.uploading = true;
+            app.vue.file_name = file.name;
             let file_type = file.type;
             let file_name = file.name;
             let full_url = file_upload_url + "&file_name=" + encodeURIComponent(file_name) + "&file_type" + encodeURIComponent(file_type);
