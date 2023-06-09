@@ -203,6 +203,28 @@ def process_snps(file):
                 db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
     print("finished processing SNPS!")
 
+
+async def process_snps2(file):
+    SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
+    i = 0
+    for line in file.split(b"\n"):
+        i += 1
+        if i%100000 == 0:
+            print(f"now processing line number {i}")
+        line = line.decode('utf8')
+        result = re.search(SEARCH_REGEX, line)
+        if result:
+            rsid = result.group(1)
+            #chromosome = result.group(2)
+            #position = result.group(3)
+            allele1 = result.group(4)
+            allele2 = result.group(5)
+            #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
+            if rsid in good_snps:
+                # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
+                db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
+                return
+
 ################
 # GCS Handlers
 @action('file_info')
@@ -210,7 +232,7 @@ def process_snps(file):
 def file_info():
     row = db(db.SNP_File.owner == get_user_email()).select().first()
 
-    if row is not None and not row.confirmed:
+    if row is not None and not row.status == "ready":
         delete_path(row.file_path)
         row.delete_record()
         row = {}
@@ -276,7 +298,7 @@ def notify_upload():
         file_name = file_name,
         file_size = file_size,
         file_date = now,
-        confirmed = True
+        status = "ready"
     )
 
     file = nqgcs.read(BUCKET, file_path)
@@ -311,7 +333,7 @@ def mark_possible_upload(file_path):
     db.SNP_File.insert(
         owner = get_user_email(),
         file_path = file_path,
-        confirmed = False
+        status = "uploading"
     )
 
 # End GCS Handlers

@@ -33,24 +33,24 @@ db.define_table(
     "SNP",
     Field('username', 'string', default=get_username),
     Field('url', 'string'),
+    Field('user_id', 'reference auth_user', default=get_user_id),
     Field('rsid', 'string', requires=IS_NOT_EMPTY()),
     Field('allele1', 'string', requires=IS_NOT_EMPTY()),
     Field('allele2', 'string', requires=IS_NOT_EMPTY()),
     Field('summary', 'text'),
     Field('weight_of_evidence', 'integer'),
-    Field('user_id', 'reference auth_user', default=get_user_id),
     auth.signature
 )
 
 db.define_table(
     "SNP_File",
     Field('owner', default=get_user_email),
-    Field('file_name'),
-    Field('file_type'),
-    Field('file_date'),
-    Field('file_path'),
+    Field('file_name', 'string'),
+    Field('file_type', 'string'),
+    Field('file_date', 'string'),
+    Field('file_path', 'string'),
     Field('file_size', 'integer'),
-    Field('confirmed', 'boolean', default=False))
+    Field('status', 'string', default='processing'))
 
 db. define_table(
     "RSID",
