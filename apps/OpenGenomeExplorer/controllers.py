@@ -27,11 +27,12 @@ if USE_GCS:
     nqgcs = NQGCS(keys=GCS_KEYS) # Luca's handle to GCS
 
 with open('good_snp_data.json', 'r') as f:
-  good_snps = json.load(f)
+  opensnp_data = json.load(f)
 
 @action('index')
 @action.uses('index.html', url_signer, db, auth.user)
 def index():
+    search_snps_url = URL('search_SNPs', signer=url_signer)
     get_snps_url = URL('get_SNPs', signer=url_signer)
     file_upload_url = URL('file_upload', signer=url_signer)
     # GCS links
@@ -39,7 +40,8 @@ def index():
     obtain_gcs_url = URL('obtain_gcs', signer=url_signer)
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
-    return dict(file_upload_url=file_upload_url,
+    return dict(search_snps_url=search_snps_url,
+                file_upload_url=file_upload_url,
                 get_snps_url=get_snps_url,
                 file_info_url=file_info_url,
                 obtain_gcs_url=obtain_gcs_url,
@@ -67,41 +69,97 @@ def complement(alleles):
         print("In complement(), alleles:", alleles)
         print("Exception in complement():", e)
 
+@action('search_SNPs')
+@action.uses(url_signer.verify(), db, auth.user)
+def search_SNPs():
+    search_summary = str(request.params.get("search_summary")).lower().strip().replace("\n", "")
+    search_rsid = str(request.params.get("search_rsid")).lower().strip().replace("\n", "")
+    
+    user_snps = []
+
+    print("search summary:", search_summary, " search RSID:", search_rsid)
+
+    if search_summary != "" and search_rsid != "":
+        print("in first")
+        user_snps = db((db.SNP.user_id == auth.user_id) & (db.SNP.summary.contains(search_summary) & (db.SNP.rsid.contains(search_rsid)))).select(orderby=~db.SNP.weight_of_evidence).as_list()
+    elif search_summary != "":
+        print("in second")
+        user_snps = db((db.SNP.user_id == auth.user_id) & (db.SNP.summary.contains(search_summary))).select(orderby=~db.SNP.weight_of_evidence).as_list()
+    elif search_rsid != "":
+        print("in third")
+        user_snps = db((db.SNP.user_id == auth.user_id) & (db.SNP.rsid.contains(search_rsid))).select(orderby=~db.SNP.weight_of_evidence).as_list()
+    else:
+        print("in else")
+        user_snps = db((db.SNP.user_id == auth.user_id)).select(orderby=~db.SNP.weight_of_evidence).as_list()
+
+    return dict(user_snps=user_snps)
+
+@action('get_SNP_row')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_SNP_row():
+    rsid = str(request.params.get("rsid")).lower().strip().replace("\n", "")
+
+    user_snp = db((db.SNP.user_id == auth.user_id) & (db.SNP.rsid == rsid)).select().as_list()[0]
+
+    allele1 = user_snp['allele1']
+    allele2 = user_snp['allele2']
+
+    alleleFreq = opensnp_data[rsid]['genotype_frequency'][allele1+allele2] / sum(opensnp_data[rsid]['genotype_frequency'].values())
+
+    return dict(user_snps=user_snp)
+
 @action('get_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_SNPs():
-    user_snps = db(db.SNP.user_id == auth.user_id).select().as_list()
+    user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=~db.SNP.weight_of_evidence).as_list()
     return dict(user_snps=user_snps)
+
+def preprocess_file(file):
+    rsids = []
+    for line in file:
+        line = line.decode('utf8')
+        if not line.startswith("#"):
+            data = line.split()
+            rsids.append(data[0]+"\t"+data[3::][0])
+            #rsids[data[0]] = data[3::][0]
+    print(rsids[0:10])
+    return rsids
 
 @action('file_upload', method="PUT")
 @action.uses(db, auth.user)
 def file_upload():
     # This is the main file upload entrypoint when storing our files in memory
     uploaded_file = request.body # This is a file, you can read it.
-    asyncio.run(process_snps(uploaded_file))
+    process_snps(preprocess_file(uploaded_file))
     return "ok"
 
-async def process_snps(file):
+def process_snps(file):
     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
     i = 0
     for line in file:
         i += 1
-        line = line.decode('utf8')
+        #line = line.decode('utf8')
         rsid = ""
         allele1 = ""
         allele2 = ""
         result = re.search(SEARCH_REGEX, line)
+        if result is None:
+            entry = line.replace("\n", "").replace("\r", "").split("\t")
+            rsid = entry[0]
+            try:
+                if len(entry[1]) == 2:
+                    allele1 = entry[1][0]
+                    allele2 = entry[1][1]
+            except Exception as e:
+                print("EXCEPTION:", e)
+                print("ENTRIES:", entry)
+
         if i%10000 == 0:
             print(f"now processing line number {i}")
             print("line:", line)
             print("result:", result)
+            print("rsid:", rsid, " allele1:", allele1, " allele2:", allele2)
             #print(opensnp_data['rs6684865'])
-        if result is None:
-            entry = line.replace("\n", "").replace("\r", "").split("\t")
-            rsid = entry[0]
-            if len(entry[1]) == 2:
-                allele1 = entry[1][0]
-                allele2 = entry[1][1]
         
         if result or allele1 != "":
             if rsid == "":
@@ -131,31 +189,34 @@ async def process_snps(file):
                         if key in complement(allele1+allele2):
                             #print(traits[key])
                             summary = traits[key]
+                            allele1 = key[0]
+                            allele2 = key[1]
+                rsid = str(rsid.strip().replace("\n", ""))
 
                 db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
     print("finished processing SNPS!")
 
 
-async def process_snps2(file):
-    SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
-    i = 0
-    for line in file:
-        i += 1
-        if i%100000 == 0:
-            print(f"now processing line number {i}")
-        line = line.decode('utf8')
-        result = re.search(SEARCH_REGEX, line)
-        if result:
-            rsid = result.group(1)
-            #chromosome = result.group(2)
-            #position = result.group(3)
-            allele1 = result.group(4)
-            allele2 = result.group(5)
-            #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
-            if rsid in good_snps:
-                # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
-                db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
-                return
+# async def process_snps2(file):
+#     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
+#     i = 0
+#     for line in file:
+#         i += 1
+#         if i%100000 == 0:
+#             print(f"now processing line number {i}")
+#         line = line.decode('utf8')
+#         result = re.search(SEARCH_REGEX, line)
+#         if result:
+#             rsid = result.group(1)
+#             #chromosome = result.group(2)
+#             #position = result.group(3)
+#             allele1 = result.group(4)
+#             allele2 = result.group(5)
+#             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
+#             if rsid in good_snps:
+#                 # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
+#                 db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
+#                 return
 
 ################
 # GCS Handlers
@@ -234,7 +295,8 @@ def notify_upload():
     )
 
     file = nqgcs.read(BUCKET, file_path)
-    asyncio.run(process_snps2(str(file)))
+    file = preprocess_file(str(file))
+    process_snps(file)
 
     return dict(download_url = gcs_url(GCS_KEYS, file_path, verb="GET"), file_date=now)
 
