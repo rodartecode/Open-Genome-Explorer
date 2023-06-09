@@ -22,6 +22,9 @@ let init = (app) => {
         deleting: false,
         delete_done: false,
         use_gcs: false,
+        search_summary: "",
+        search_rsid: "",
+        row_clicked: false,
     };
 
     app.enumerate = (a) => {
@@ -58,6 +61,14 @@ let init = (app) => {
         }
     }
 
+    app.search = function () {
+        console.log("searching!")
+            axios.get(search_snps_url, {params: {search_summary: app.vue.search_summary, search_rsid: app.vue.search_rsid}})
+                .then(function (result) {
+                    app.vue.user_snps = app.enumerate(result.data.user_snps);
+                    app.vue.hide_upload = false;
+                });
+    }
 
     app.set_result = function (r) {
         // Sets the results after a server call.
@@ -114,6 +125,7 @@ let init = (app) => {
             app.vue.file_size = file_size;
             app.vue.file_date = r.data.file_date;
             app.vue.download_url = r.data.download_url;
+            //get_snps();
         });
     }
 
@@ -236,6 +248,7 @@ let init = (app) => {
         app.vue.uploading = false;
         app.vue.upload_done = true;
         app.vue.uploaded_file = file_name;
+        //get_snps();
     }
 
     app.upload_file_nogcs = function (event){
@@ -252,6 +265,7 @@ let init = (app) => {
             });
             req.open("PUT", full_url, true);
             req.send(file);
+            //get_snps();
         }
     }
 
@@ -263,6 +277,7 @@ let init = (app) => {
         retrieve_snps: app.retrieve_snps,
         delete_file: app.delete_file,
         download_file: app.download_file,
+        search: app.search,
     };
 
     app.vue = new Vue({
@@ -272,35 +287,6 @@ let init = (app) => {
     });
 
     app.init = () => {
-        // onAuthStateChanged(auth, (user) => {
-        //     if (user) {
-        //       // User is signed in, see docs for a list of available properties
-        //       // https://firebase.google.com/docs/reference/js/auth.user
-        //       const uid = user.uid;
-        //       app.vue.user = user;
-        //       // ...
-        //     } else {
-        //       // User is signed out
-        //       // ...
-        //       axios.post(auth_verify_url).then(function (r) {
-        //         console.log("custom_token:", r.data.custom_token)
-        //         signInWithCustomToken(auth, r.data.custom_token)
-        //         .then((userCredential) => {
-        //             // Signed in
-        //             const user = userCredential.user;
-        //             // ...
-        //         })
-        //         .catch((error) => {
-        //             const errorCode = error.code;
-        //             const errorMessage = error.message;
-        //             console.log(errorCode)
-        //             console.log(errorMessage)
-        //             console.log(error)
-        //             // ...
-        //         });
-        //     })
-        //     }
-        //   });
 
         app.get_snps();
 
