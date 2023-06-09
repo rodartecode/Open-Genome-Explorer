@@ -7,10 +7,8 @@ import json
 from py4web import action, request, redirect, URL
 from .common import db, session, auth
 from py4web.utils.url_signer import URLSigner
-from .models import get_username, get_user_email, get_user_id, clear_db
-import pickle
-import json, requests, threading, queue, time, string
-import asyncio
+from .models import get_user_email
+import json, requests, threading
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
 from .settings import APP_FOLDER
