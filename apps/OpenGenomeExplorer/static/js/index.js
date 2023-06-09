@@ -221,12 +221,6 @@ let init = (app) => {
     };
 
     app.get_snps = function () {
-        // User is not logged in
-        if (!user_id) {
-            console.log("User is not logged in");
-            return;
-        }
-        
         axios.get(get_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
             app.vue.hide_upload = false;

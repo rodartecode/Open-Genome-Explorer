@@ -6,10 +6,6 @@
 }
 </style>
 
-[[if not globals().get('user'):]]
-  [[include 'index.html']]
-
-[[else:]]
 <div class="section" id="vue-target" v-cloak>
   <div class="field has-addons">
     <p class="control">
@@ -94,10 +90,7 @@
   let obtain_gcs_url = "[[=XML(obtain_gcs_url)]]";
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
-  let user_id = "[[=XML(user_id)]]";
   let use_gcs = use_gcs || false;
 </script>
 <script type="module" src="js/index.js"></script>
 [[end]]
-
-[[pass]]

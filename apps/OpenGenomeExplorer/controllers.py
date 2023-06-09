@@ -30,10 +30,10 @@ with open('good_snp_data.json', 'r') as f:
   good_snps = json.load(f)
 
 @action('index')
-@action.uses('index.html', url_signer)
+@action.uses('index.html', auth)
 def index():
     if auth.current_user:
-        redirect(URL('home', signer=url_signer))
+        redirect(URL('home'))
     return dict()
 
 @action('home')
@@ -46,15 +46,13 @@ def home():
     obtain_gcs_url = URL('obtain_gcs', signer=url_signer)
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
-    user_id = auth.current_user.get('id') if auth.current_user else ""
     return dict(file_upload_url=file_upload_url,
                 get_snps_url=get_snps_url,
                 file_info_url=file_info_url,
                 obtain_gcs_url=obtain_gcs_url,
                 notify_url=notify_url,
                 delete_url=delete_url,
-                use_gcs=USE_GCS,
-                user_id=user_id)
+                use_gcs=USE_GCS)
 
 # Code provided by Valeska
 def complement(alleles):
