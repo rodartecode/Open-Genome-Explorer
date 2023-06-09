@@ -229,7 +229,6 @@ let init = (app) => {
                 app.vue.start_index = app.vue.end_index - app.vue.page_size;
                 app.vue.end_index = app.vue.user_snps.length-1;
             }
-            app.vue.page += 1;
         }
     };
 
