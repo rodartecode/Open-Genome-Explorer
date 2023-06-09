@@ -229,6 +229,7 @@ let init = (app) => {
                 app.vue.start_index = app.vue.end_index - app.vue.page_size;
                 app.vue.end_index = app.vue.user_snps.length-1;
             }
+            app.vue.page += 1;
         }
     };
 
@@ -236,7 +237,6 @@ let init = (app) => {
         axios.get(get_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
             app.vue.hide_upload = false;
-
         })
     };
 
@@ -249,7 +249,7 @@ let init = (app) => {
         app.vue.upload_done = true;
         app.vue.uploaded_file = file_name;
         //get_snps();
-        window.location.reload();
+        app.vue.get_snps();
     }
 
     app.upload_file_nogcs = function (event){
