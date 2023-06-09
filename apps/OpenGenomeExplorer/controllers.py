@@ -19,7 +19,7 @@ from .settings import APP_FOLDER, USE_GCS
 
 url_signer = URLSigner(session)
 opensnp_data = {}
-if USE_GCS:
+if os.environ.get("GAE_ENV"):
     BUCKET = "/open-genome-explorer"
     GCS_KEY_PATH =  os.path.join(APP_FOLDER, 'private/gcs_keys.json')
     with open(GCS_KEY_PATH) as f:
@@ -47,6 +47,11 @@ def home():
     obtain_gcs_url = URL('obtain_gcs', signer=url_signer)
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
+    
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
     return dict(search_snps_url=search_snps_url,
                 file_upload_url=file_upload_url,
                 get_snps_url=get_snps_url,
@@ -318,7 +323,7 @@ def delete_path(file_path):
     if file_path:
         try:
             bucket, id = os.path.split(file_path)
-            if USE_GCS:
+            if os.environ.get("GAE_ENV"):
                 nqgcs.delete(bucket[1:], id)
         except Exception as e:
             print("Error deleting", file_path, ":", e)

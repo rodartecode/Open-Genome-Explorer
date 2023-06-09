@@ -9,9 +9,6 @@ import os
 from py4web.core import required_folder
 from .private.secrets import DB_USER, DB_PASSWORD, DB_NAME, DB_CONNECTION_NAME
 
-# Flag whether we are storing our files on GCS or in memory
-USE_GCS = False
-
 # db settings
 APP_FOLDER = os.path.dirname(__file__)
 APP_NAME = os.path.split(APP_FOLDER)[-1]
