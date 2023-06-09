@@ -236,7 +236,6 @@ let init = (app) => {
         axios.get(get_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
             app.vue.hide_upload = false;
-
         })
     };
 
@@ -249,6 +248,7 @@ let init = (app) => {
         app.vue.upload_done = true;
         app.vue.uploaded_file = file_name;
         //get_snps();
+        app.vue.get_snps();
     }
 
     app.upload_file_nogcs = function (event){
@@ -256,6 +256,7 @@ let init = (app) => {
         let file = input.files[0];
         if (file) {
             app.vue.uploading = true;
+            app.vue.file_name = file.name;
             let file_type = file.type;
             let file_name = file.name;
             let full_url = file_upload_url + "&file_name=" + encodeURIComponent(file_name) + "&file_type" + encodeURIComponent(file_type);

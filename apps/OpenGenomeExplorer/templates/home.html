@@ -4,6 +4,21 @@
 [v-cloak] {
      display: none;
 }
+.container {
+  border: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.loader-wrapper {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+.loader {
+  height: 600px;
+  width: 600px;
+}
 </style>
 
 <div class="section" id="vue-target" v-cloak>
@@ -32,6 +47,7 @@
         </span>
         <span>{{file_info}}</span>
       </button>
+      <button v-else-if="uploading || upload_done" class="button is-static">{{ file_name }}</button>
       <button v-else class="button is-static">No file uploaded</button>
     </p>
   </div>
@@ -45,7 +61,16 @@
     </div>
   </div>
 
-  <div v-if="user_snps.length > 1" id="SNPs">
+  <div v-if="uploading">
+    <div class="section">
+      <div class="container">
+        <div class="loader-wrapper has-text-info">
+          <div class="loader is-loading"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-else-if="user_snps.length > 1" id="SNPs">
     <div class="table-container">
       <table class="table">
         <!-- Your table content -->
