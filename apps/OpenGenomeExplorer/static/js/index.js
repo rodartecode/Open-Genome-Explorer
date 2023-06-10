@@ -63,6 +63,7 @@ let init = (app) => {
         }
     }
 
+    // Search through SNP's
     app.search = function () {
         if (app.vue.search_rsid.length > 0) {
             app.vue.display_snps = app.vue.user_snps.filter(function(item) {
