@@ -44,6 +44,7 @@
               [[if globals().get('user'):]]
                 <a class="button is-light" href="[[=URL('auth/logout')]]">Sign out</a>
               [[else:]]
+                <a class="button is-link" href="[[=URL('auth/plugin/oauth2google/login', vars=dict(next=URL('index')))]]">Google Sign In</a>
                 <a class="button is-link" href="[[=URL('auth/register')]]">Sign up</a>
                 <a class="button is-success" href="[[=URL('auth/login')]]">Log in</a>
               [[pass]]
@@ -59,7 +60,7 @@
     <footer class="footer">
       <div class="content has-text-centered">
         Made with <a href="https://py4web.com">py4web</a>.
-        <a href="https://learn-py4web.github.io">Explore your SNP Array!</a>
+        <a href="https://opensnp.org/">Explore your SNP Array!</a>
       </div>
     </footer>
   </body>

@@ -1,8 +1,4 @@
-[[if use_gcs:]]
-  [[extend 'layout.html']]
-[[else:]]
-  [[extend 'cloud_layout.html']]
-[[pass]]
+[[extend 'layout.html']]
 <style>
 [v-cloak] {
      display: none;
@@ -26,66 +22,35 @@
 
 <div class="section" id="vue-target" v-cloak>
   <div class="columns is-mobile">
-    <div class="column is-mobile">
-      <div class="field has-addons is-pulled-left">
-        <p v-if="!upload_done" class="control">
-          <div class="file is-info">
-            <label class="file-label">
-              <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
-              <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
-              <span class="file-cta">
-                <span class="file-icon">
-                  <i v-if="uploading" class="fa fa-spinner fa-pulse fa-fw"></i>
-                  <i v-else class="fa fa-upload fa-fw"></i>
-                </span>
-                <span class="file-label">
-                  <span v-if="!uploading">Upload new file</span>
-                </span>
+    <div class="field has-addons">
+      <p class="control">
+        <div v-if="!upload_done" class="file is-info">
+          <label class="file-label">
+            <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
+            <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
+            <span class="file-cta">
+              <span class="file-icon">
+                <i v-if="uploading" class="fa fa-spinner fa-pulse fa-fw"></i>
+                <i v-else class="fa fa-upload fa-fw"></i>
               </span>
-            </label>
-          </div>
-        </p>
-        <p class="control">
-          <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
-            <span class="icon">
-              <i class="fa fa-download fa-fw"></i>
+              <span class="file-label">
+                <span v-if="!uploading">Upload new file</span>
+              </span>
             </span>
-            <span>{{file_info}}</span>
-          </button>
-          <button v-else-if="uploading || upload_done" class="button is-static">{{ file_name }}</button>
-          <button v-else-if="user_snps.length == 0" class="button is-static">No file uploaded</button>
-        </p>
-      </div>
+          </label>
+        </div>
+      </p>
+      <p class="control">
+        <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
+          <span class="icon" v-if="download_url">
+            <i class="fa fa-download fa-fw"></i>
+          </span>
+          <span>{{file_info}}</span>
+        </button>
+        <button v-else class="button is-static">No file uploaded</button>
+      </p>
     </div>
     <div class="column is-mobile"><a href="[[=URL('shared_snp')]]" class="button is-pulled-right">View other's shared SNPs</a></div>
-  </div>
-  <div class="field has-addons">
-    <p class="control">
-      <div v-if="!upload_done" class="file is-info">
-        <label class="file-label">
-          <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
-          <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
-          <span class="file-cta">
-            <span class="file-icon">
-              <i v-if="uploading" class="fa fa-spinner fa-pulse fa-fw"></i>
-              <i v-else class="fa fa-upload fa-fw"></i>
-            </span>
-            <span class="file-label">
-              <span v-if="!uploading">Upload new file</span>
-            </span>
-          </span>
-        </label>
-      </div>
-    </p>
-    <p class="control">
-      <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
-        <span class="icon" v-if="download_url">
-          <i class="fa fa-download fa-fw"></i>
-        </span>
-        <span>{{file_info}}</span>
-      </button>
-      <button v-else class="button is-static">No file uploaded</button>
-    </p>
   </div>
 
   <div class="columns is-mobile">
@@ -167,7 +132,7 @@
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
   let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
-  let get_comment_url_url = "[[=XML(get_comments_url)]]";
+  let get_comment_url_url = "[[=XML(get_comment_url_url)]]";
   let use_gcs = use_gcs || false;
 </script>
 <script type="module" src="js/home.js"></script>
