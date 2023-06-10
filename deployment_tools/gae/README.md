@@ -27,7 +27,7 @@ coming soon but mostly adapted from <https://learn-py4web.github.io/unit20.html>
 
 ### Manually Migrate the DB
 
-In Google App Engine the database tables need to be manually created so that PYdal can use them.
+In Google App Engine the database tables need to be manually created so that PYdal can use them. In addition future migrations will also need to be done manually.
 
 ```SQL
 coming soon
