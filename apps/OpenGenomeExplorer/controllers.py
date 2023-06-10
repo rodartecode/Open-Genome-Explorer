@@ -30,15 +30,8 @@ with open('good_snp_data.json', 'r') as f:
   opensnp_data = json.load(f)
 
 @action('index')
-@action.uses('index.html', auth)
+@action.uses('index.html', url_signer, db, auth.user)
 def index():
-    if auth.current_user:
-        redirect(URL('home'))
-    return dict()
-
-@action('home')
-@action.uses('home.html', url_signer, db, auth.user)
-def home():
     search_snps_url = URL('search_SNPs', signer=url_signer)
     get_snps_url = URL('get_SNPs', signer=url_signer)
     file_upload_url = URL('file_upload', signer=url_signer)
@@ -220,15 +213,16 @@ def process_snps(file):
                             allele2 = key[1]
                 rsid = str(rsid.strip().replace("\n", ""))
 
-                db.SNP.update_or_insert(
-                    (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
-                    summary=summary,
-                    url=url, 
-                    rsid=rsid, 
-                    allele1=allele1, 
-                    allele2=allele2, 
-                    weight_of_evidence=weight_of_evidence
-                )
+                if summary != "":
+                  db.SNP.update_or_insert(
+                      (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
+                      summary=summary,
+                      url=url, 
+                      rsid=rsid, 
+                      allele1=allele1, 
+                      allele2=allele2, 
+                      weight_of_evidence=weight_of_evidence
+                  )
     print("finished processing SNPS!")
 
 ################
