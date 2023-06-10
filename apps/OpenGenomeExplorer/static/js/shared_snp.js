@@ -19,6 +19,7 @@ let init = (app) => {
         search_rsid: "",
         row_clicked: false,
         column_sorted: null,
+        loading: false,
     };
 
     app.enumerate = (a) => {
@@ -71,9 +72,11 @@ let init = (app) => {
     };
 
     app.get_snps = function () {
+        app.vue.loading = true;
         axios.get(get_shared_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
             app.vue.hide_upload = false;
+            app.vue.loading = false;
             app.vue.display_snps = app.vue.user_snps;
         })
     };

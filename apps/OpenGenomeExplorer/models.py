@@ -56,6 +56,15 @@ db.define_table(
 )
 
 db.define_table(
+    "comments",
+    Field('username', 'string', default=get_username),
+    Field('content', 'text'),
+    Field('shared_snp_id', 'reference shared_SNP'),
+    Field('user_id', 'reference auth_user', default=get_user_id),
+    auth.signature
+)
+
+db.define_table(
     "SNP_File",
     Field('owner', default=get_user_email),
     Field('file_name'),
