@@ -29,6 +29,7 @@ if USE_GCS:
 with open('good_snp_data.json', 'r') as f:
   opensnp_data = json.load(f)
 
+# Index page for non-logged in user; redirects to 'home' otherwise
 @action('index')
 @action.uses('index.html', auth)
 def index():
@@ -36,6 +37,7 @@ def index():
         redirect(URL('home'))
     return dict()
 
+# Instruction page for non-logged in user; redirects to 'home' otherwise
 @action('instructions')
 @action.uses('instructions.html', auth)
 def instructions():
@@ -65,6 +67,7 @@ def shared_snp():
     return dict(get_shared_snps_url=get_shared_snps_url,
                 get_shared_sorted_snps_url=get_shared_sorted_snps_url)
 
+# Home page for logged in user
 @action('home')
 @action.uses('home.html', url_signer, db, auth.user)
 def home():
@@ -109,12 +112,13 @@ def complement(alleles):
         print("In complement(), alleles:", alleles)
         print("Exception in complement():", e)
 
+# Search bar for SNPs
 @action('search_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def search_SNPs():
     search_summary = str(request.params.get("search_summary")).lower().strip().replace("\n", "")
     search_rsid = str(request.params.get("search_rsid")).lower().strip().replace("\n", "")
-    
+
     user_snps = []
 
     print("search summary:", search_summary, " search RSID:", search_rsid)
@@ -134,10 +138,11 @@ def search_SNPs():
 
     return dict(user_snps=user_snps)
 
+# SNP Sharing
 @action('share_snp', method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def share_snp():
-    
+
     snp = request.json.get("snp")
 
     print("snp:", snp)
@@ -146,10 +151,10 @@ def share_snp():
     db.shared_SNP.update_or_insert(
         (db.shared_SNP.user_id == get_user_id()) & (db.shared_SNP.rsid == snp['rsid']) & (db.shared_SNP.allele1 == snp['allele1']) & (db.shared_SNP.allele2 == snp['allele2']),
         summary=snp['summary'],
-        url=snp['url'], 
-        rsid=snp['rsid'], 
-        allele1=snp['allele1'], 
-        allele2=snp['allele2'], 
+        url=snp['url'],
+        rsid=snp['rsid'],
+        allele1=snp['allele1'],
+        allele2=snp['allele2'],
         weight_of_evidence=snp['weight_of_evidence']
     )
 
@@ -217,6 +222,7 @@ def get_sorted_SNPs():
     # Return sorted list
     return dict(user_snps=user_snps)
 
+# Prepreocessing file before regex
 def preprocess_file(file):
     rsids = []
     for line in file:
@@ -236,6 +242,7 @@ def file_upload():
     process_snps(preprocess_file(uploaded_file))
     return "ok"
 
+# File formatting is different depending on the source
 def process_snps(file):
     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
     i = 0
@@ -263,7 +270,8 @@ def process_snps(file):
             print("result:", result)
             print("rsid:", rsid, " allele1:", allele1, " allele2:", allele2)
             #print(opensnp_data['rs6684865'])
-        
+
+        # Put rsid data into DB
         if result or allele1 != "":
             if rsid == "":
                 rsid = result.group(1)
@@ -273,7 +281,6 @@ def process_snps(file):
                 allele2 = result.group(5)
             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
 
-            # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
             if rsid in opensnp_data and allele1 != "-" and allele2 != "-":
                 #print("entered for rsid:", rsid)
                 weight_of_evidence = opensnp_data[rsid]['weight_of_evidence']
@@ -300,16 +307,17 @@ def process_snps(file):
                   db.SNP.update_or_insert(
                       (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
                       summary=summary,
-                      url=url, 
-                      rsid=rsid, 
-                      allele1=allele1, 
-                      allele2=allele2, 
+                      url=url,
+                      rsid=rsid,
+                      allele1=allele1,
+                      allele2=allele2,
                       weight_of_evidence=weight_of_evidence
                   )
     print("finished processing SNPS!")
 
 ################
 # GCS Handlers
+
 @action('file_info')
 @action.uses(url_signer.verify(), db, auth.user)
 def file_info():
