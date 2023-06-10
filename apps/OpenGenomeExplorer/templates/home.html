@@ -138,6 +138,7 @@
             <td>{{SNP.weight_of_evidence}}</td>
             <td><a :href='SNP.url' target="_blank">{{SNP.url}}</a></td>
             <td><a class="button" @click="share_snp(SNP)">Share</a></td>
+            <td><a class="button" @click="goto_comments(SNP)">Comment</a></td>
           </tr>
         </tbody>
       </table>
@@ -163,6 +164,7 @@
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
   let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
+  let get_comment_url_url = "[[=XML(get_comments_url)]]";
   let use_gcs = use_gcs || false;
 </script>
 <script type="module" src="js/home.js"></script>

@@ -41,10 +41,15 @@ def instructions():
         redirect(URL('home'))
     return dict()
 
-@action('comments')
+@action('get_comment_url')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_comments():
+    snp_id = int(request.params.get("snp_id"))
+    return dict(url=URL('goto_comments', snp_id, signer=url_signer))
+
+@action('comments/<shared_snp_id>')
 @action.uses('comments.html', url_signer.verify(), db, auth.user)
-def comments():
-    shared_snp_id = request.params.get("shared_snp_id")
+def comments(shared_snp_id):
     snp = db(db.shared_SNP.id == shared_snp_id).select().as_list()[0]
 
     add_comment_url = URL('add_comment', signer=url_signer)
@@ -76,6 +81,7 @@ def home():
     obtain_gcs_url = URL('obtain_gcs', signer=url_signer)
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
+    get_comment_url_url = URL('get_comment_url', signer=url_signer)
     
     if os.environ.get("GAE_ENV"):
         USE_GCS = True # Should be true but just for testing
@@ -91,6 +97,7 @@ def home():
                 notify_url=notify_url,
                 delete_url=delete_url,
                 get_sorted_snps_url=get_sorted_snps_url,
+                get_comment_url_url=get_comment_url_url,
                 use_gcs=USE_GCS)
 
 # Code provided by Valeska
