@@ -1,4 +1,8 @@
-[[extend 'layout.html']]
+[[if use_gcs:]]
+  [[extend 'layout.html']]
+[[else:]]
+  [[extend 'cloud_layout.html']]
+[[pass]]
 
 <head>
   <base href="[[=URL('static')]]/">
@@ -53,4 +57,7 @@
 </body>
 
 [[block page_scripts]]
+<script>
+  let use_gcs = use_gcs || false;
+</script>
 [[end]]

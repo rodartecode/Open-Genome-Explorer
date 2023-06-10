@@ -1,5 +1,8 @@
-[[extend 'layout.html']]
-
+[[if use_gcs:]]
+  [[extend 'layout.html']]
+[[else:]]
+  [[extend 'cloud_layout.html']]
+[[pass]]
 <style>
 [v-cloak] {
      display: none;
@@ -56,6 +59,34 @@
     </div>
     <div class="column is-mobile"><a href="[[=URL('shared_snp')]]" class="button is-pulled-right">View other's shared SNPs</a></div>
   </div>
+  <div class="field has-addons">
+    <p class="control">
+      <div v-if="!upload_done" class="file is-info">
+        <label class="file-label">
+          <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
+          <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
+          <span class="file-cta">
+            <span class="file-icon">
+              <i v-if="uploading" class="fa fa-spinner fa-pulse fa-fw"></i>
+              <i v-else class="fa fa-upload fa-fw"></i>
+            </span>
+            <span class="file-label">
+              <span v-if="!uploading">Upload new file</span>
+            </span>
+          </span>
+        </label>
+      </div>
+    </p>
+    <p class="control">
+      <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
+        <span class="icon" v-if="download_url">
+          <i class="fa fa-download fa-fw"></i>
+        </span>
+        <span>{{file_info}}</span>
+      </button>
+      <button v-else class="button is-static">No file uploaded</button>
+    </p>
+  </div>
 
   <div class="columns is-mobile">
     <div class="field column is-mobile">
@@ -110,6 +141,7 @@
             <td>{{SNP.weight_of_evidence}}</td>
             <td><a :href='SNP.url' target="_blank">{{SNP.url}}</a></td>
             <td><a class="button" @click="share_snp(SNP)">Share</a></td>
+            <td><a class="button" @click="goto_comments(SNP)">Comment</a></td>
           </tr>
         </tbody>
       </table>
@@ -135,7 +167,8 @@
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
   let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
-  //let use_gcs = use_gcs || false;
+  let get_comment_url_url = "[[=XML(get_comments_url)]]";
+  let use_gcs = use_gcs || false;
 </script>
 <script type="module" src="js/home.js"></script>
 [[end]]
