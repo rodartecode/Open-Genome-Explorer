@@ -32,44 +32,6 @@
     </div>
   </div>
 
-  <div v-if="row_clicked">
-    <div class="table-container">
-      <table class="table">
-        <!-- Your table content -->
-        <thead>
-          <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
-          </tr>
-        </tfoot>
-        <tbody>
-          <tr v-for="SNP in user_snps.slice(start_index, end_index)">
-            <td>{{SNP.rsid}}</td>
-            <td>{{SNP.allele1}}</td>
-            <td>{{SNP.allele2}}</td>
-            <td>{{SNP.summary}}</td>
-            <td>{{SNP.weight_of_evidence}}</td>
-            <td><a :href='SNP.url'>{{SNP.url}}</a></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <div v-if="user_snps.length >= 1 && !row_clicked" id="SNPs">
     <div class="table-container">
       <table class="table">
@@ -83,6 +45,7 @@
             <th><abbr title="Summary">Summary</abbr></th>
             <th><abbr title="Weight Of Evidence">WoE</abbr></th>
             <th><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Add a comment">Comment</abbr></th>
           </tr>
         </thead>
         <tfoot>
@@ -94,6 +57,7 @@
             <th><abbr title="Summary">Summary</abbr></th>
             <th><abbr title="Weight Of Evidence">WoE</abbr></th>
             <th><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Add a comment">Comment</abbr></th>
           </tr>
         </tfoot>
         <tbody>
@@ -105,6 +69,7 @@
             <td>{{SNP.summary}}</td>
             <td>{{SNP.weight_of_evidence}}</td>
             <td><a :href='SNP.url'>{{SNP.url}}</a></td>
+            <td><a class="button" @click="[[=URL('comments', SNP.id, signer=url_signer)]]">Comment</a></td>
           </tr>
         </tbody>
       </table>

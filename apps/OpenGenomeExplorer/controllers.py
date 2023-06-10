@@ -41,7 +41,20 @@ def instructions():
         redirect(URL('home'))
     return dict()
 
-# Route for URL sharing
+@action('comments')
+@action.uses('comments.html', url_signer.verify(), db, auth.user)
+def comments():
+    shared_snp_id = request.params.get("shared_snp_id")
+    snp = db(db.shared_SNP.id == shared_snp_id).select().as_list()[0]
+
+    add_comment_url = URL('add_comment', signer=url_signer)
+    get_comments_url = URL('get_comments', signer=url_signer)
+
+    return dict(SNP=snp,
+                shared_snp_id=shared_snp_id,
+                add_comment_url=add_comment_url,
+                get_comments_url=get_comments_url)
+
 @action('shared_snp')
 @action.uses('shared_snp.html', url_signer, db, auth.user)
 def shared_snp():
@@ -106,7 +119,7 @@ def complement(alleles):
 def search_SNPs():
     search_summary = str(request.params.get("search_summary")).lower().strip().replace("\n", "")
     search_rsid = str(request.params.get("search_rsid")).lower().strip().replace("\n", "")
-    
+
     user_snps = []
 
     print("search summary:", search_summary, " search RSID:", search_rsid)
@@ -130,7 +143,7 @@ def search_SNPs():
 @action('share_snp', method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def share_snp():
-    
+
     snp = request.json.get("snp")
 
     print("snp:", snp)
@@ -139,35 +152,35 @@ def share_snp():
     db.shared_SNP.update_or_insert(
         (db.shared_SNP.user_id == get_user_id()) & (db.shared_SNP.rsid == snp['rsid']) & (db.shared_SNP.allele1 == snp['allele1']) & (db.shared_SNP.allele2 == snp['allele2']),
         summary=snp['summary'],
-        url=snp['url'], 
-        rsid=snp['rsid'], 
-        allele1=snp['allele1'], 
-        allele2=snp['allele2'], 
+        url=snp['url'],
+        rsid=snp['rsid'],
+        allele1=snp['allele1'],
+        allele2=snp['allele2'],
         weight_of_evidence=snp['weight_of_evidence']
     )
 
     return dict()
 
-# Getting an individual row; for showing details on a certain SNP
-@action('get_SNP_row')
+@action('add_comment')
 @action.uses(url_signer.verify(), db, auth.user)
-def get_SNP_row():
-    rsid = str(request.params.get("rsid")).lower().strip().replace("\n", "")
-
-    user_snp = db((db.SNP.user_id == auth.user_id) & (db.SNP.rsid == rsid)).select().as_list()[0]
-
-    allele1 = user_snp['allele1']
-    allele2 = user_snp['allele2']
-
-    alleleFreq = opensnp_data[rsid]['genotype_frequency'][allele1+allele2] / sum(opensnp_data[rsid]['genotype_frequency'].values())
-
-    return dict(user_snps=user_snp)
+def add_comment():
+    shared_snp_id = request.params.get("shared_snp_id")
+    content = request.params.get("content")
+    db.meow.insert(content=content, shared_snp_id=shared_snp_id)
 
 @action('get_shared_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_shared_SNPs():
     user_snps = db(db.shared_SNP).select(orderby=~db.shared_SNP.weight_of_evidence).as_list()
     return dict(user_snps=user_snps)
+
+@action('get_comments')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_comments():
+    shared_snp_id = request.params.get("shared_snp_id")
+
+    comments = db(db.comments.shared_snp_id == shared_snp_id).select().as_list()
+    return dict(comments=comments)
 
 @action('get_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
@@ -258,7 +271,7 @@ def process_snps(file):
             print("result:", result)
             print("rsid:", rsid, " allele1:", allele1, " allele2:", allele2)
             #print(opensnp_data['rs6684865'])
-        
+
         # Put rsid data into DB
         if result or allele1 != "":
             if rsid == "":
@@ -295,10 +308,10 @@ def process_snps(file):
                   db.SNP.update_or_insert(
                       (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
                       summary=summary,
-                      url=url, 
-                      rsid=rsid, 
-                      allele1=allele1, 
-                      allele2=allele2, 
+                      url=url,
+                      rsid=rsid,
+                      allele1=allele1,
+                      allele2=allele2,
                       weight_of_evidence=weight_of_evidence
                   )
     print("finished processing SNPS!")
