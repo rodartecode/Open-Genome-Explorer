@@ -241,6 +241,13 @@ let init = (app) => {
         }
     };
 
+    app.share_snp = function (snp) {
+        axios.post(share_snp_url, {
+            snp: snp,
+        }).then( function (r) {
+        });
+    };
+
     app.get_snps = function () {
         axios.get(get_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
@@ -321,6 +328,7 @@ let init = (app) => {
         download_file: app.download_file,
         search: app.search,
         sort_table: app.sort_table,
+        share_snp: app.share_snp,
     };
 
     app.vue = new Vue({

@@ -4,12 +4,27 @@
 [v-cloak] {
      display: none;
 }
+.container {
+  border: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.loader-wrapper {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+.loader {
+  height: 600px;
+  width: 600px;
+}
 </style>
 
 <div class="section" id="vue-target" v-cloak>
   <div class="field has-addons">
-    <p class="control">
-      <div v-if="!upload_done" class="file is-info">
+    <p v-if="!upload_done" class="control">
+      <div class="file is-info">
         <label class="file-label">
           <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
           <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
@@ -32,6 +47,7 @@
         </span>
         <span>{{file_info}}</span>
       </button>
+      <button v-else-if="uploading || upload_done" class="button is-static">{{ file_name }}</button>
       <button v-else class="button is-static">No file uploaded</button>
     </p>
   </div>
@@ -45,38 +61,50 @@
     </div>
   </div>
 
-  <div v-if="user_snps.length > 1" id="SNPs">
+  <div v-if="uploading">
+    <div class="section">
+      <div class="container">
+        <div class="loader-wrapper has-text-info">
+          <div class="loader is-loading"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-else-if="user_snps.length > 1" id="SNPs">
     <div class="table-container">
       <table class="table">
         <!-- Your table content -->
         <thead>
           <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
+            <th @click="sort_table(0)"><abbr title="rsid">rsid</abbr></th>
+            <th @click="sort_table(1)"><abbr title="Allele1">allele1</abbr></th>
+            <th @click="sort_table(2)"><abbr title="Allele2">allele2</abbr></th>
+            <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
+            <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Share this SNP">Share</abbr></th>
           </tr>
         </thead>
         <tfoot>
           <tr>
-            <th><abbr title="rsid">rsid</abbr></th>
-            <th><abbr title="Allele1">allele1</abbr></th>
-            <th><abbr title="Allele2">allele2</abbr></th>
-            <th><abbr title="Summary">Summary</abbr></th>
-            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
-            <th><abbr title="URL">URL</abbr></th>
+            <th @click="sort_table(0)"><abbr title="rsid">rsid</abbr></th>
+            <th @click="sort_table(1)"><abbr title="Allele1">allele1</abbr></th>
+            <th @click="sort_table(2)"><abbr title="Allele2">allele2</abbr></th>
+            <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
+            <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Share this SNP">Share</abbr></th>
           </tr>
         </tfoot>
         <tbody>
-          <tr v-for="SNP in user_snps.slice(start_index, end_index)">
+          <tr v-for="SNP in display_snps.slice(start_index, end_index)">
             <td>{{SNP.rsid}}</td>
             <td>{{SNP.allele1}}</td>
             <td>{{SNP.allele2}}</td>
             <td>{{SNP.summary}}</td>
             <td>{{SNP.weight_of_evidence}}</td>
-            <td><a :href='SNP.url'>{{SNP.url}}</a></td>
+            <td><a :href='SNP.url' target="_blank">{{SNP.url}}</a></td>
+            <td><a class="button" @click="share_snp(SNP)">Share</a></td>
           </tr>
         </tbody>
       </table>
@@ -94,13 +122,15 @@
 <!-- Loads the index-specific js for Vue -->
 <script>
   let search_snps_url = "[[=XML(search_snps_url)]]";
+  let share_snp_url = "[[=XML(share_snp_url)]]";
   let get_snps_url = "[[=XML(get_snps_url)]]";
   let file_upload_url = "[[=XML(file_upload_url)]]";
   let file_info_url = "[[=XML(file_info_url)]]";
   let obtain_gcs_url = "[[=XML(obtain_gcs_url)]]";
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
-  let use_gcs = use_gcs || false;
+  let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
+  //let use_gcs = use_gcs || false;
 </script>
-<script type="module" src="js/index.js"></script>
+<script type="module" src="js/home.js"></script>
 [[end]]

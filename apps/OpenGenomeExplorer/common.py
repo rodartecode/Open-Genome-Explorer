@@ -107,8 +107,6 @@ auth_button_classes = {
     "submit": "button is-primary",
 }
 
-auth.param.login_after_registration = True
-
 auth.use_username = True
 auth.param.button_classes = auth_button_classes
 auth.param.registration_requires_confirmation = False

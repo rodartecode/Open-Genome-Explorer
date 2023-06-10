@@ -7,8 +7,10 @@ import json
 from py4web import action, request, redirect, URL
 from .common import db, session, auth
 from py4web.utils.url_signer import URLSigner
-from .models import get_user_email
-import json, requests, threading
+from .models import get_username, get_user_email, get_user_id, clear_db
+import pickle
+import json, requests, threading, queue, time, string
+import asyncio
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
 from .settings import APP_FOLDER
@@ -32,9 +34,18 @@ def index():
         redirect(URL('home'))
     return dict()
 
+@action('shared_snp')
+@action.uses('shared_snp.html', url_signer, db, auth.user)
+def shared_snp():
+    get_shared_snps_url = URL('get_shared_SNPs', signer=url_signer)
+    get_shared_sorted_snps_url = URL('get_shared_sorted_SNPs', signer=url_signer)
+    return dict(get_shared_snps_url=get_shared_snps_url,
+                get_shared_sorted_snps_url=get_shared_sorted_snps_url)
+
 @action('home')
 @action.uses('home.html', url_signer, db, auth.user)
 def home():
+    share_snp_url = URL('share_snp', signer=url_signer)
     search_snps_url = URL('search_SNPs', signer=url_signer)
     get_snps_url = URL('get_SNPs', signer=url_signer)
     file_upload_url = URL('file_upload', signer=url_signer)
@@ -48,13 +59,16 @@ def home():
         USE_GCS = True # Should be true but just for testing
     else:
         USE_GCS = False
-    return dict(search_snps_url=search_snps_url,
+    get_sorted_snps_url = URL('get_sorted_SNPs', signer=url_signer)
+    return dict(share_snp_url=share_snp_url,
+                search_snps_url=search_snps_url,
                 file_upload_url=file_upload_url,
                 get_snps_url=get_snps_url,
                 file_info_url=file_info_url,
                 obtain_gcs_url=obtain_gcs_url,
                 notify_url=notify_url,
                 delete_url=delete_url,
+                get_sorted_snps_url=get_sorted_snps_url,
                 use_gcs=USE_GCS)
 
 # Code provided by Valeska
@@ -102,6 +116,27 @@ def search_SNPs():
 
     return dict(user_snps=user_snps)
 
+@action('share_snp', method="POST")
+@action.uses(url_signer.verify(), db, auth.user)
+def share_snp():
+    
+    snp = request.json.get("snp")
+
+    print("snp:", snp)
+    print("snp rsid:", snp['rsid'])
+
+    db.shared_SNP.update_or_insert(
+        (db.shared_SNP.user_id == get_user_id()) & (db.shared_SNP.rsid == snp['rsid']) & (db.shared_SNP.allele1 == snp['allele1']) & (db.shared_SNP.allele2 == snp['allele2']),
+        summary=snp['summary'],
+        url=snp['url'], 
+        rsid=snp['rsid'], 
+        allele1=snp['allele1'], 
+        allele2=snp['allele2'], 
+        weight_of_evidence=snp['weight_of_evidence']
+    )
+
+    return dict()
+
 @action('get_SNP_row')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_SNP_row():
@@ -116,10 +151,51 @@ def get_SNP_row():
 
     return dict(user_snps=user_snp)
 
+@action('get_shared_SNPs')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_shared_SNPs():
+    user_snps = db(db.shared_SNP).select(orderby=~db.shared_SNP.weight_of_evidence).as_list()
+    return dict(user_snps=user_snps)
+
 @action('get_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_SNPs():
     user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=~db.SNP.weight_of_evidence).as_list()
+    return dict(user_snps=user_snps)
+
+@action('get_shared_sorted_SNPs')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_shared_sorted_SNPs():
+    # Sort by this attribute
+    attr = str(request.params.get("attr"))
+
+    # Sort by ascending or descending
+    sort = str(request.params.get("sort"))
+
+    if sort == "asc":
+        user_snps = db(db.shared_SNP.user_id == auth.user_id).select(orderby=db.shared_SNP[attr]).as_list()
+    else:
+        user_snps = db(db.shared_SNP.user_id == auth.user_id).select(orderby=~db.shared_SNP[attr]).as_list()
+
+    # Return sorted list
+    return dict(user_snps=user_snps)
+
+# Get user's SNPs in an order determined by the request
+@action('get_sorted_SNPs')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_sorted_SNPs():
+    # Sort by this attribute
+    attr = str(request.params.get("attr"))
+
+    # Sort by ascending or descending
+    sort = str(request.params.get("sort"))
+
+    if sort == "asc":
+        user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=db.SNP[attr]).as_list()
+    else:
+        user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=~db.SNP[attr]).as_list()
+
+    # Return sorted list
     return dict(user_snps=user_snps)
 
 def preprocess_file(file):
@@ -188,7 +264,7 @@ def process_snps(file):
                 summary = ""
 
                 for each in opensnp_data[rsid]["annotations"]["snpedia"]:
-                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])-1]
+                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])]
                 if len(traits) != 0:
                     #print("traits:", traits)
                     #print("Alleles:", allele1 + allele2)
@@ -200,7 +276,16 @@ def process_snps(file):
                             allele2 = key[1]
                 rsid = str(rsid.strip().replace("\n", ""))
 
-                db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
+                if summary != "":
+                  db.SNP.update_or_insert(
+                      (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
+                      summary=summary,
+                      url=url, 
+                      rsid=rsid, 
+                      allele1=allele1, 
+                      allele2=allele2, 
+                      weight_of_evidence=weight_of_evidence
+                  )
     print("finished processing SNPS!")
 
 

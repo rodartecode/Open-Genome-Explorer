@@ -43,6 +43,19 @@ db.define_table(
 )
 
 db.define_table(
+    "shared_SNP",
+    Field('username', 'string', default=get_username),
+    Field('url', 'string'),
+    Field('rsid', 'string', requires=IS_NOT_EMPTY()),
+    Field('allele1', 'string', requires=IS_NOT_EMPTY()),
+    Field('allele2', 'string', requires=IS_NOT_EMPTY()),
+    Field('summary', 'text'),
+    Field('weight_of_evidence', 'integer'),
+    Field('user_id', 'reference auth_user', default=get_user_id),
+    auth.signature
+)
+
+db.define_table(
     "SNP_File",
     Field('owner', default=get_user_email),
     Field('file_name', 'string'),
@@ -95,3 +108,8 @@ def init_db():
                 allele1, allele2 = extract_final_pair(url)
                 new_info = dict(url=url, allele1=allele1, allele2=allele2, summary=summary)
                 db.RSID_Info.insert(rsid=inserted_rsid, **new_info)
+
+# Used for testing; clears SNP data
+def clear_db():
+    db(db.SNP).delete()
+    db.commit()
