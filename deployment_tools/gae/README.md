@@ -53,7 +53,7 @@ Then, you can either do:
 make deploy email={your email} project={your project} version={vesion}
 ```
 
-or if you have a gcloud configuration already configured, 
+or if you have a gcloud configuration already configured,
 
 ```bash
 gcloud app deploy
