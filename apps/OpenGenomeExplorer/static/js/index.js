@@ -5,6 +5,7 @@ let init = (app) => {
     app.data = {
         user: null,
         user_snps: [],
+        display_snps: [],
         hide_upload: true,
         uploading: false,
         uploaded_file: "",
@@ -25,6 +26,7 @@ let init = (app) => {
         search_summary: "",
         search_rsid: "",
         row_clicked: false,
+        column_sorted: null,
     };
 
     app.enumerate = (a) => {
@@ -62,12 +64,19 @@ let init = (app) => {
     }
 
     app.search = function () {
-        console.log("searching!")
-            axios.get(search_snps_url, {params: {search_summary: app.vue.search_summary, search_rsid: app.vue.search_rsid}})
-                .then(function (result) {
-                    app.vue.user_snps = app.enumerate(result.data.user_snps);
-                    app.vue.hide_upload = false;
-                });
+        if (app.vue.search_rsid.length > 0) {
+            app.vue.display_snps = app.vue.user_snps.filter(function(item) {
+                return item.rsid.toLowerCase().indexOf(app.vue.search_rsid.toLowerCase()) >= 0
+            })
+        }
+        else if (app.vue.search_summary.length > 0) {
+            app.vue.display_snps = app.vue.user_snps.filter(function(item) {
+                return item.summary.toLowerCase().indexOf(app.vue.search_summary.toLowerCase()) >= 0
+            })
+        }
+        else {
+            app.vue.display_snps = app.vue.user_snps;
+        }
     }
 
     app.set_result = function (r) {
@@ -125,7 +134,7 @@ let init = (app) => {
             app.vue.file_size = file_size;
             app.vue.file_date = r.data.file_date;
             app.vue.download_url = r.data.download_url;
-            //get_snps();
+            app.get_snps();
         });
     }
 
@@ -236,7 +245,7 @@ let init = (app) => {
         axios.get(get_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
             app.vue.hide_upload = false;
-
+            app.vue.display_snps = app.vue.user_snps;
         })
     };
 
@@ -248,7 +257,7 @@ let init = (app) => {
         app.vue.uploading = false;
         app.vue.upload_done = true;
         app.vue.uploaded_file = file_name;
-        //get_snps();
+        app.get_snps();
     }
 
     app.upload_file_nogcs = function (event){
@@ -269,6 +278,39 @@ let init = (app) => {
         }
     }
 
+    // Sort the table by the clicked attribute
+    app.sort_table = function (column_num) {
+        // Sortable attributes
+        let attrs = [
+            "rsid", 
+            "allele1", 
+            "allele2", 
+            "summary", 
+            "weight_of_evidence", 
+            "url"
+        ];
+        let sort = "desc";
+        let attr = attrs[column_num];
+
+        // First sort is always descending; If already sorted, then sort by ascending
+        if (app.vue.column_sorted == attr) {
+            app.vue.column_sorted = null;
+            sort = "asc";
+        } else {
+            app.vue.column_sorted = attrs[column_num];
+        }
+
+        // Request sorted SNPs
+        axios.get(get_sorted_snps_url, {params: {
+            attr: attrs[column_num],
+            sort: sort,
+        }})
+        .then(function(result) {
+            app.vue.user_snps = app.enumerate(result.data.user_snps);
+            app.vue.display_snps = app.vue.user_snps;
+        })
+    }
+
     app.methods = {
         upload_file_nogcs: app.upload_file_nogcs,
         upload_file_gcs: app.upload_file_gcs,
@@ -278,6 +320,7 @@ let init = (app) => {
         delete_file: app.delete_file,
         download_file: app.download_file,
         search: app.search,
+        sort_table: app.sort_table,
     };
 
     app.vue = new Vue({

@@ -95,3 +95,8 @@ def init_db():
                 allele1, allele2 = extract_final_pair(url)
                 new_info = dict(url=url, allele1=allele1, allele2=allele2, summary=summary)
                 db.RSID_Info.insert(rsid=inserted_rsid, **new_info)
+
+# Used for testing; clears SNP data
+def clear_db():
+    db(db.SNP).delete()
+    db.commit()

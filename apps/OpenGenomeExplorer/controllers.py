@@ -9,7 +9,7 @@ from py4web import action, request, abort, redirect, URL
 from yatl.helpers import A
 from .common import db, session, T, cache, auth, logger, authenticated, unauthenticated, flash
 from py4web.utils.url_signer import URLSigner
-from .models import get_username, get_user_email
+from .models import get_username, get_user_email, get_user_id, clear_db
 import pickle
 import json, requests, threading, queue, time, string
 import asyncio
@@ -40,6 +40,7 @@ def index():
     obtain_gcs_url = URL('obtain_gcs', signer=url_signer)
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
+    get_sorted_snps_url = URL('get_sorted_SNPs', signer=url_signer)
     return dict(search_snps_url=search_snps_url,
                 file_upload_url=file_upload_url,
                 get_snps_url=get_snps_url,
@@ -47,6 +48,7 @@ def index():
                 obtain_gcs_url=obtain_gcs_url,
                 notify_url=notify_url,
                 delete_url=delete_url,
+                get_sorted_snps_url=get_sorted_snps_url,
                 use_gcs=USE_GCS)
 
 # Code provided by Valeska
@@ -112,6 +114,24 @@ def get_SNP_row():
 @action.uses(url_signer.verify(), db, auth.user)
 def get_SNPs():
     user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=~db.SNP.weight_of_evidence).as_list()
+    return dict(user_snps=user_snps)
+
+# Get user's SNPs in an order determined by the request
+@action('get_sorted_SNPs')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_sorted_SNPs():
+    # Sort by this attribute
+    attr = str(request.params.get("attr"))
+
+    # Sort by ascending or descending
+    sort = str(request.params.get("sort"))
+
+    if sort == "asc":
+        user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=db.SNP[attr]).as_list()
+    else:
+        user_snps = db(db.SNP.user_id == auth.user_id).select(orderby=~db.SNP[attr]).as_list()
+
+    # Return sorted list
     return dict(user_snps=user_snps)
 
 def preprocess_file(file):
@@ -181,7 +201,7 @@ def process_snps(file):
                 summary = ""
 
                 for each in opensnp_data[rsid]["annotations"]["snpedia"]:
-                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])-1]
+                    traits[each["url"][-4] + each["url"][-2]] = each["summary"][0:len(each["summary"])]
                 if len(traits) != 0:
                     #print("traits:", traits)
                     #print("Alleles:", allele1 + allele2)
@@ -194,30 +214,16 @@ def process_snps(file):
                 rsid = str(rsid.strip().replace("\n", ""))
 
                 if summary != "":
-                    db.SNP.update_or_insert(summary=summary, url=url, rsid=rsid, allele1=allele1, allele2=allele2, weight_of_evidence=weight_of_evidence)
+                  db.SNP.update_or_insert(
+                      (db.SNP.user_id == get_user_id()) & (db.SNP.rsid == rsid) & (db.SNP.allele1 == allele1) & (db.SNP.allele2 == allele2),
+                      summary=summary,
+                      url=url, 
+                      rsid=rsid, 
+                      allele1=allele1, 
+                      allele2=allele2, 
+                      weight_of_evidence=weight_of_evidence
+                  )
     print("finished processing SNPS!")
-
-
-# async def process_snps2(file):
-#     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
-#     i = 0
-#     for line in file:
-#         i += 1
-#         if i%100000 == 0:
-#             print(f"now processing line number {i}")
-#         line = line.decode('utf8')
-#         result = re.search(SEARCH_REGEX, line)
-#         if result:
-#             rsid = result.group(1)
-#             #chromosome = result.group(2)
-#             #position = result.group(3)
-#             allele1 = result.group(4)
-#             allele2 = result.group(5)
-#             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
-#             if rsid in good_snps:
-#                 # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
-#                 db.SNP.update_or_insert(rsid=rsid, allele1=allele1, allele2=allele2)
-#                 return
 
 ################
 # GCS Handlers
