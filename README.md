@@ -3,17 +3,20 @@
 ## About Open Genome Explorer
 
 ![Logo](images/logo.PNG)
+
 Open Genome Explorer is a web app that utilizes the genetic information the user uploads in order to provide insights about their genome. By using data provided by open source SNP database [OpenSNP](https://opensnp.org/), the user may learn more about their health traits and genetic risk factors based on the genetic information they upload.
 
 ## Usage
 
 * Create an account using built-in py4web auth and sign in.
 * Upload your SNP array from sources like 23andMe or AncestryDNA. `test-genome.txt` is included for testing. The data in the file should follow the format:
-| rsid        | chromosome  | position  | genotype  |
-| ----------- | ----------- | --------- | --------- |
-| rs2478267   | 1           | 7584814   | GG        |
-| rs2013624   | 1           | 7588413   | CC        |
-|...          | ...         | ...       | ...       |
+
+| rsid      | chromosome | position | genotype |
+|-----------|------------|----------|----------|
+| rs2478267 | 1          | 7584814  | GG       |
+| rs2013624 | 1          | 7588413  | CC       |
+| ...       | ...        | ...      | ...      |
+
 * Once the file has been processed, any data matching known good SNP data will be displayed in a table.
 ![Results Table](images/results.PNG)
 * Sort the table by any column by clicking on the column.
@@ -21,7 +24,6 @@ Open Genome Explorer is a web app that utilizes the genetic information the user
 ![Search Results](images/search.PNG)
 * Clicking on a URL will open the openSNP page containing detailed results in a new tab.
 * Pressing Share will add your SNP to a public page that any viewer see.
-![Public SNPs](images/public.PNG)
 * Pressing Comment will allow you to add comments to a SNP.
 * Pressing on a SNP will load that SNP's page and all comments associated.
 
