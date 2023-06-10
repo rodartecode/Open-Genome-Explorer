@@ -7,7 +7,7 @@ This file is provided as an example:
 """
 import os
 from py4web.core import required_folder
-from .private.secrets import DB_USER, DB_PASSWORD, DB_NAME, DB_CONNECTION_NAME
+from .private.secrets import DB_USER, DB_USER_PASSWORD, DB_NAME, DB_CONNECTION_NAME
 
 # db settings
 APP_FOLDER = os.path.dirname(__file__)
@@ -16,7 +16,7 @@ APP_NAME = os.path.split(APP_FOLDER)[-1]
 #               and is the store location for SQLite databases
 DB_FOLDER = required_folder(APP_FOLDER, "databases")
 
-CLOUD_DB_URI = f"google:MySQLdb://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_socket=/cloudsql/{DB_CONNECTION_NAME}"
+CLOUD_DB_URI = f"google:MySQLdb://{DB_USER}:{DB_USER_PASSWORD}@/{DB_NAME}?unix_socket=/cloudsql/{DB_CONNECTION_NAME}"
 CLOUD_DB_POOL_SIZE = 1
 CLOUD_DB_MIGRATE = False
 CLOUD_DB_FAKE_MIGRATE = False  # maybe?
@@ -27,10 +27,12 @@ DB_MIGRATE = True
 DB_FAKE_MIGRATE = False  # maybe?
 
 # location where static files are stored:
-# STATIC_FOLDER = required_folder(APP_FOLDER, "static")
+if not os.environ.get("GAE_ENV"):
+    STATIC_FOLDER = required_folder(APP_FOLDER, "static")
 
 # location where to store uploaded files:
-# UPLOAD_FOLDER = required_folder(APP_FOLDER, "uploads")
+if not os.environ.get("GAE_ENV"):
+    UPLOAD_FOLDER = required_folder(APP_FOLDER, "uploads")
 
 # send email on regstration
 VERIFY_EMAIL = True

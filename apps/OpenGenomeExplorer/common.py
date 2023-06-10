@@ -41,7 +41,6 @@ if os.environ.get("GAE_ENV"):
         pool_size=settings.CLOUD_DB_POOL_SIZE,
         migrate=settings.CLOUD_DB_MIGRATE,
         fake_migrate=settings.CLOUD_DB_FAKE_MIGRATE,
-        adapter_args={"use_ndb": True},
     )
 else:
     db = DAL(
@@ -189,16 +188,18 @@ if settings.OAUTH2OKTA_CLIENT_ID:
 # Define a convenience action to allow users to download
 # files uploaded and reference by Field(type='upload')
 # #######################################################
-# if settings.UPLOAD_FOLDER:
-#     @action('download/<filename>')
-#     @action.uses(db)
-#     def download(filename):
-#         return downloader(db, settings.UPLOAD_FOLDER, filename)
-#     # To take advantage of this in Form(s)
-#     # for every field of type upload you MUST specify:
-#     #
-#     # field.upload_path = settings.UPLOAD_FOLDER
-#     # field.download_url = lambda filename: URL('download/%s' % filename)
+
+if not os.environ.get("GAE_ENV"):
+    if settings.UPLOAD_FOLDER:
+        @action('download/<filename>')
+        @action.uses(db)
+        def download(filename):
+            return downloader(db, settings.UPLOAD_FOLDER, filename)
+        # To take advantage of this in Form(s)
+        # for every field of type upload you MUST specify:
+        #
+        # field.upload_path = settings.UPLOAD_FOLDER
+        # field.download_url = lambda filename: URL('download/%s' % filename)
 
 # #######################################################
 # Optionally configure celery

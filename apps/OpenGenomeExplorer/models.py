@@ -31,7 +31,7 @@ def get_time():
 
 db.define_table(
     "SNP",
-    Field('user_email', 'string', default=get_user_email),
+    Field('username', 'string', default=get_username),
     Field('url', 'string'),
     Field('user_id', 'reference auth_user', default=get_user_id),
     Field('rsid', 'string', requires=IS_NOT_EMPTY()),
