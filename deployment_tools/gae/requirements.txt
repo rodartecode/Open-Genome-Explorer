@@ -1,0 +1,21 @@
+nqgcs==0.1.4
+pycryptodome>=3.18.0
+
+# added these from the py4web requirements.txt
+py4web
+wheel
+ombott >= 1.0.0
+click
+colorama
+cryptography
+portalocker
+renoir >= 1.4.0
+requests
+threadsafevariable >= 20230507.1
+pyjwt >= 2.0.1
+pluralize >= 20230507.1
+rocket3 >= 20230507.1
+yatl >= 20230507.3
+pydal >= 20230521.1
+watchgod >= 0.6
+mysqlclient

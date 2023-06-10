@@ -6,3 +6,9 @@ databases/*
 !databases/README.md
 private/*
 */.service/*
+venv/
+password.txt
+apps/_dashboard/*
+apps/_documentation/*
+apps/_minimal/*
+apps/_scaffold/*

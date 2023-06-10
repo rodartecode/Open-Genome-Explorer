@@ -1,0 +1,139 @@
+[[extend 'layout.html']]
+<style>
+[v-cloak] {
+     display: none;
+}
+.container {
+  border: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.loader-wrapper {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+.loader {
+  height: 600px;
+  width: 600px;
+}
+</style>
+
+<div class="section" id="vue-target" v-cloak>
+  <div class="columns is-mobile">
+    <div class="field has-addons">
+      <p class="control">
+        <div v-if="!upload_done" class="file is-info">
+          <label class="file-label">
+            <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
+            <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
+            <span class="file-cta">
+              <span class="file-icon">
+                <i v-if="uploading" class="fa fa-spinner fa-pulse fa-fw"></i>
+                <i v-else class="fa fa-upload fa-fw"></i>
+              </span>
+              <span class="file-label">
+                <span v-if="!uploading">Upload new file</span>
+              </span>
+            </span>
+          </label>
+        </div>
+      </p>
+      <p class="control">
+        <button v-if="file_path" class="button" @click="download_file" :class="{'disabled': !file_path}">
+          <span class="icon" v-if="download_url">
+            <i class="fa fa-download fa-fw"></i>
+          </span>
+          <span>{{file_info}}</span>
+        </button>
+        <button v-else class="button is-static">No file uploaded</button>
+      </p>
+    </div>
+    <div class="column is-mobile"><a href="[[=URL('shared_snp')]]" class="button is-pulled-right">View other's shared SNPs</a></div>
+  </div>
+
+  <div class="columns is-mobile">
+    <div class="field column is-mobile">
+      <input class="input" placeholder="Search rsids" v-model="search_rsid" @keyup="search"></input>
+    </div>
+    <div class="field column is-mobile">
+      <input class="input" placeholder="Search in summary" v-model="search_summary" @keyup="search"></input>
+    </div>
+  </div>
+
+  <div v-if="uploading || loading">
+    <div class="section">
+      <div class="container">
+        <div class="loader-wrapper has-text-info">
+          <div class="loader is-loading"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-else-if="user_snps.length > 1" id="SNPs">
+    <div class="table-container">
+      <table class="table">
+        <!-- Your table content -->
+        <thead>
+          <tr>
+            <th @click="sort_table(0)"><abbr title="rsid">rsid</abbr></th>
+            <th @click="sort_table(1)"><abbr title="Allele1">allele1</abbr></th>
+            <th @click="sort_table(2)"><abbr title="Allele2">allele2</abbr></th>
+            <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
+            <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Share this SNP">Share</abbr></th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th @click="sort_table(0)"><abbr title="rsid">rsid</abbr></th>
+            <th @click="sort_table(1)"><abbr title="Allele1">allele1</abbr></th>
+            <th @click="sort_table(2)"><abbr title="Allele2">allele2</abbr></th>
+            <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
+            <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Share this SNP">Share</abbr></th>
+          </tr>
+        </tfoot>
+        <tbody>
+          <tr v-for="SNP in display_snps.slice(start_index, end_index)">
+            <td>{{SNP.rsid}}</td>
+            <td>{{SNP.allele1}}</td>
+            <td>{{SNP.allele2}}</td>
+            <td>{{SNP.summary}}</td>
+            <td>{{SNP.weight_of_evidence}}</td>
+            <td><a :href='SNP.url' target="_blank">{{SNP.url}}</a></td>
+            <td><a class="button" @click="share_snp(SNP)">Share</a></td>
+            <td><a class="button" @click="goto_comments(SNP)">Comment</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="pagination" role="navigation" aria-label="pagination">
+      <a class="pagination-previous" @click="retrieve_snps(cur_page_num-1)">Previous</a>
+      <a class="pagination-next" @click="retrieve_snps(cur_page_num+1)">Next page</a>
+    </nav>
+  </div>
+</div>
+
+
+[[block page_scripts]]
+<!-- Loads the index-specific js for Vue -->
+<script>
+  let search_snps_url = "[[=XML(search_snps_url)]]";
+  let share_snp_url = "[[=XML(share_snp_url)]]";
+  let get_snps_url = "[[=XML(get_snps_url)]]";
+  let file_upload_url = "[[=XML(file_upload_url)]]";
+  let file_info_url = "[[=XML(file_info_url)]]";
+  let obtain_gcs_url = "[[=XML(obtain_gcs_url)]]";
+  let notify_url = "[[=XML(notify_url)]]";
+  let delete_url = "[[=XML(delete_url)]]";
+  let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
+  let get_comment_url_url = "[[=XML(get_comment_url_url)]]";
+  let use_gcs = use_gcs || false;
+</script>
+<script type="module" src="js/home.js"></script>
+[[end]]

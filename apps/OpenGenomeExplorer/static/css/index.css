@@ -1,0 +1,17 @@
+/* Styles for the navbar */
+
+.navbar.is-dark {
+  background-color: #426872
+}
+
+.navbar.is-dark .navbar-brand > a.navbar-item:focus,
+.navbar.is-dark .navbar-brand > a.navbar-item:hover,
+.navbar.is-dark .navbar-brand > a.navbar-item.is-active {
+  background-color:#2f4a51
+}
+
+.navbar.is-dark .navbar-item.has-dropdown:focus .navbar-link,
+.navbar.is-dark .navbar-item.has-dropdown:hover .navbar-link,
+.navbar.is-dark .navbar-item.has-dropdown.is-active .navbar-link {
+  background-color: #2f4a51;
+}

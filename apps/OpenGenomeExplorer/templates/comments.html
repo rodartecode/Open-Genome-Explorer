@@ -1,0 +1,103 @@
+[[extend 'cloud_layout.html']]
+
+<style>
+[v-cloak] {
+     display: none;
+}
+.container {
+  border: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.loader-wrapper {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+.loader {
+  height: 600px;
+  width: 600px;
+}
+</style>
+
+<div class="section" id="vue-target" v-cloak>
+
+  <div>
+    <div class="table-container">
+      <table class="table">
+        <!-- Your table content -->
+        <thead>
+          <tr>
+            <th><abbr title="Username">Username</abbr></th>
+            <th><abbr title="rsid">rsid</abbr></th>
+            <th><abbr title="Allele1">allele1</abbr></th>
+            <th><abbr title="Allele2">allele2</abbr></th>
+            <th><abbr title="Summary">Summary</abbr></th>
+            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th><abbr title="URL">URL</abbr></th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th><abbr title="Username">Username</abbr></th>
+            <th><abbr title="rsid">rsid</abbr></th>
+            <th><abbr title="Allele1">allele1</abbr></th>
+            <th><abbr title="Allele2">allele2</abbr></th>
+            <th><abbr title="Summary">Summary</abbr></th>
+            <th><abbr title="Weight Of Evidence">WoE</abbr></th>
+            <th><abbr title="URL">URL</abbr></th>
+          </tr>
+        </tfoot>
+        <tbody>
+          <tr>
+            <td>[[SNP.username]]</td>
+            <td>[[SNP.rsid]]</td>
+            <td>[[SNP.allele1]]</td>
+            <td>[[SNP.allele2]]</td>
+            <td>[[SNP.summary]]</td>
+            <td>[[SNP.weight_of_evidence]]</td>
+            <td><a :href='[[SNP.url]]'>[[SNP.url]]</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <br>
+
+  <form @submit.prevent="add_comment(); form_reset();">
+    <div class="field">
+      <textarea class="textarea" placeholder="What's on your mind?" rows="2" v-model="comment"></textarea>
+    </div>
+    <div class="field">
+      <div class="control"><button class="button is-link">Publish!</button></div> 
+    </div>
+  </form>
+
+  <div v-if="comments.length != 0" v-for="comment in comments" class="box">
+    <nav class="level is-mobile">
+      <div class="level-left">
+        <a class="level-item" aria-label="reply">
+          <span class="icon is-small">
+            <i class="fa fa-user"></i>
+            </span>
+            <span class="mI-2">{{comment.username}}</span>
+        </a>
+      </div>
+    </nav>
+    <div class="content">
+      {{comment.content}}
+    </div>
+  </div>
+</div>
+
+
+[[block page_scripts]]
+<!-- Loads the index-specific js for Vue -->
+<script>
+  let add_comment_url = "[[=XML(add_comment_url)]]";
+  let get_comments_url = "[[=XML(get_comments_url)]]";
+  //let use_gcs = use_gcs || false;
+</script>
+<script type="module" src="js/comments.js"></script>
+[[end]]

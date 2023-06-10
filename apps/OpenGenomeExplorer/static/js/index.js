@@ -1,47 +1,11 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js'
-
-// Add Firebase products that you want to use
-import { getAuth, onAuthStateChanged, signInWithCustomToken, browserSessionPersistence  } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js'
-import { getDatabase } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js'
-
-// Import the functions you need from the SDKs you need
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-apiKey: "AIzaSyCezKBpHBgfohekmUX6HdsHTnlcPd-Ss2g",
-authDomain: "open-genome-explorer.firebaseapp.com",
-databaseURL: "https://open-genome-explorer-default-rtdb.firebaseio.com",
-projectId: "open-genome-explorer",
-storageBucket: "open-genome-explorer.appspot.com",
-messagingSenderId: "66972289733",
-appId: "1:66972289733:web:0378adea8262164c2afeac",
-measurementId: "G-R4X3QLPK7V"
-};
-
-// Initialize Firebase
-const firebase_app = initializeApp(firebaseConfig);
-
-const fb_database = getDatabase();
-const auth = getAuth();
-
-// console.log("auth:", auth)
-
-// This will be the object that will contain the Vue attributes
-// and be used to initialize it.
 let app = {};
 
-
-// Given an empty app object, initializes it filling its attributes,
-// creates a Vue instance, and then initializes the Vue instance.
 let init = (app) => {
 
-    // This is the Vue data.
     app.data = {
         user: null,
         user_snps: [],
+        display_snps: [],
         hide_upload: true,
         uploading: false,
         uploaded_file: "",
@@ -58,10 +22,14 @@ let init = (app) => {
         download_url: "",
         deleting: false,
         delete_done: false,
+        use_gcs: false,
+        search_summary: "",
+        search_rsid: "",
+        row_clicked: false,
+        column_sorted: null,
     };
 
     app.enumerate = (a) => {
-        // This adds an _idx field to each element of the array.
         let k = 0;
         a.map((e) => {e._idx = k++;});
         return a;
@@ -95,6 +63,22 @@ let init = (app) => {
         }
     }
 
+    // Search through SNP's
+    app.search = function () {
+        if (app.vue.search_rsid.length > 0) {
+            app.vue.display_snps = app.vue.user_snps.filter(function(item) {
+                return item.rsid.toLowerCase().indexOf(app.vue.search_rsid.toLowerCase()) >= 0
+            })
+        }
+        else if (app.vue.search_summary.length > 0) {
+            app.vue.display_snps = app.vue.user_snps.filter(function(item) {
+                return item.summary.toLowerCase().indexOf(app.vue.search_summary.toLowerCase()) >= 0
+            })
+        }
+        else {
+            app.vue.display_snps = app.vue.user_snps;
+        }
+    }
 
     app.set_result = function (r) {
         // Sets the results after a server call.
@@ -106,7 +90,7 @@ let init = (app) => {
         app.vue.download_url = r.data.download_url;
     }
 
-    app.upload_file = function (event) {
+    app.upload_file_gcs = function (event) {
         let input = event.target;
         let file = input.files[0];
         if (file) {
@@ -151,6 +135,7 @@ let init = (app) => {
             app.vue.file_size = file_size;
             app.vue.file_date = r.data.file_date;
             app.vue.download_url = r.data.download_url;
+            app.get_snps();
         });
     }
 
@@ -230,13 +215,6 @@ let init = (app) => {
 
     // Thank you Luca and Massimo
 
-    // app.upload_complete = function (file_name, file_type) {
-    //     app.vue.uploading = false;
-    //     app.vue.upload_done = true;
-    //     app.vue.uploaded_file = file_name;
-    //     app.get_snps();
-    // };
-
     app.retrieve_snps = function (page_num) {
         // TODO: Check for issues with str types, use parseInt
         if (page_num < 0 || ((page_num * app.vue.page_size) >= (app.vue.user_snps.length) )) {
@@ -268,7 +246,7 @@ let init = (app) => {
         axios.get(get_snps_url).then(function (r) {
             app.vue.user_snps = app.enumerate(r.data.user_snps);
             app.vue.hide_upload = false;
-
+            app.vue.display_snps = app.vue.user_snps;
         })
     };
 
@@ -276,64 +254,89 @@ let init = (app) => {
         file_info: app.file_info,
     };
 
-    // This contains all the methods.
+    app.upload_complete_nogcs = function (file_name, file_type){
+        app.vue.uploading = false;
+        app.vue.upload_done = true;
+        app.vue.uploaded_file = file_name;
+        app.get_snps();
+    }
+
+    app.upload_file_nogcs = function (event){
+        let input = event.target;
+        let file = input.files[0];
+        if (file) {
+            app.vue.uploading = true;
+            let file_type = file.type;
+            let file_name = file.name;
+            let full_url = file_upload_url + "&file_name=" + encodeURIComponent(file_name) + "&file_type" + encodeURIComponent(file_type);
+            let req = new XMLHttpRequest();
+            req.addEventListener("load", function(){
+                app.upload_complete_nogcs(file_name, file_type);
+            });
+            req.open("PUT", full_url, true);
+            req.send(file);
+            //get_snps();
+        }
+    }
+
+    // Sort the table by the clicked attribute
+    app.sort_table = function (column_num) {
+        // Sortable attributes
+        let attrs = [
+            "rsid", 
+            "allele1", 
+            "allele2", 
+            "summary", 
+            "weight_of_evidence", 
+            "url"
+        ];
+        let sort = "desc";
+        let attr = attrs[column_num];
+
+        // First sort is always descending; If already sorted, then sort by ascending
+        if (app.vue.column_sorted == attr) {
+            app.vue.column_sorted = null;
+            sort = "asc";
+        } else {
+            app.vue.column_sorted = attrs[column_num];
+        }
+
+        // Request sorted SNPs
+        axios.get(get_sorted_snps_url, {params: {
+            attr: attrs[column_num],
+            sort: sort,
+        }})
+        .then(function(result) {
+            app.vue.user_snps = app.enumerate(result.data.user_snps);
+            app.vue.display_snps = app.vue.user_snps;
+        })
+    }
+
     app.methods = {
-        // Complete as you see fit.
-        upload_file: app.upload_file,
+        upload_file_nogcs: app.upload_file_nogcs,
+        upload_file_gcs: app.upload_file_gcs,
         upload_complete: app.upload_complete,
         get_snps: app.get_snps,
         retrieve_snps: app.retrieve_snps,
         delete_file: app.delete_file,
         download_file: app.download_file,
+        search: app.search,
+        sort_table: app.sort_table,
     };
 
-    // This creates the Vue instance.
     app.vue = new Vue({
         el: "#vue-target",
         data: app.data,
         methods: app.methods
     });
 
-    // And this initializes it.
     app.init = () => {
-        // onAuthStateChanged(auth, (user) => {
-        //     if (user) {
-        //       // User is signed in, see docs for a list of available properties
-        //       // https://firebase.google.com/docs/reference/js/auth.user
-        //       const uid = user.uid;
-        //       app.vue.user = user;
-        //       // ...
-        //     } else {
-        //       // User is signed out
-        //       // ...
-        //       axios.post(auth_verify_url).then(function (r) {
-        //         console.log("custom_token:", r.data.custom_token)
-        //         signInWithCustomToken(auth, r.data.custom_token)
-        //         .then((userCredential) => {
-        //             // Signed in
-        //             const user = userCredential.user;
-        //             // ...
-        //         })
-        //         .catch((error) => {
-        //             const errorCode = error.code;
-        //             const errorMessage = error.message;
-        //             console.log(errorCode)
-        //             console.log(errorMessage)
-        //             console.log(error)
-        //             // ...
-        //         });
-        //     })
-        //     }
-        //   });
 
         app.get_snps();
 
     };
 
-    // Call to the initializer.
     app.init();
 };
 
-// This takes the (empty) app object, and initializes it,
-// putting all the code i
 init(app);
