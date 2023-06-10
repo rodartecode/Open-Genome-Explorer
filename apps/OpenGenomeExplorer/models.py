@@ -43,6 +43,19 @@ db.define_table(
 )
 
 db.define_table(
+    "shared_SNP",
+    Field('username', 'string', default=get_username),
+    Field('url', 'string'),
+    Field('rsid', 'string', requires=IS_NOT_EMPTY()),
+    Field('allele1', 'string', requires=IS_NOT_EMPTY()),
+    Field('allele2', 'string', requires=IS_NOT_EMPTY()),
+    Field('summary', 'text'),
+    Field('weight_of_evidence', 'integer'),
+    Field('user_id', 'reference auth_user', default=get_user_id),
+    auth.signature
+)
+
+db.define_table(
     "SNP_File",
     Field('owner', default=get_user_email),
     Field('file_name'),

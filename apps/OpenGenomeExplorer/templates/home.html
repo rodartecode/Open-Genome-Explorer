@@ -23,8 +23,8 @@
 
 <div class="section" id="vue-target" v-cloak>
   <div class="field has-addons">
-    <p class="control">
-      <div v-if="!upload_done" class="file is-info">
+    <p v-if="!upload_done" class="control">
+      <div class="file is-info">
         <label class="file-label">
           <input v-if="use_gcs" class="file-input" type="file" @change="upload_file_gcs($event)">
           <input v-else class="file-input" type="file" @change="upload_file_nogcs($event)">
@@ -82,6 +82,7 @@
             <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
             <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
             <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Share this SNP">Share</abbr></th>
           </tr>
         </thead>
         <tfoot>
@@ -92,6 +93,7 @@
             <th @click="sort_table(3)"><abbr title="Summary">Summary</abbr></th>
             <th @click="sort_table(4)"><abbr title="Weight Of Evidence">WoE</abbr></th>
             <th @click="sort_table(5)"><abbr title="URL">URL</abbr></th>
+            <th><abbr title="Share this SNP">Share</abbr></th>
           </tr>
         </tfoot>
         <tbody>
@@ -102,6 +104,7 @@
             <td>{{SNP.summary}}</td>
             <td>{{SNP.weight_of_evidence}}</td>
             <td><a :href='SNP.url' target="_blank">{{SNP.url}}</a></td>
+            <td><a class="button" @click="share_snp(SNP)">Share</a></td>
           </tr>
         </tbody>
       </table>
@@ -119,6 +122,7 @@
 <!-- Loads the index-specific js for Vue -->
 <script>
   let search_snps_url = "[[=XML(search_snps_url)]]";
+  let share_snp_url = "[[=XML(share_snp_url)]]";
   let get_snps_url = "[[=XML(get_snps_url)]]";
   let file_upload_url = "[[=XML(file_upload_url)]]";
   let file_info_url = "[[=XML(file_info_url)]]";
@@ -126,7 +130,7 @@
   let notify_url = "[[=XML(notify_url)]]";
   let delete_url = "[[=XML(delete_url)]]";
   let get_sorted_snps_url = "[[=XML(get_sorted_snps_url)]]";
-  let use_gcs = use_gcs || false;
+  //let use_gcs = use_gcs || false;
 </script>
-<script type="module" src="js/index.js"></script>
+<script type="module" src="js/home.js"></script>
 [[end]]
