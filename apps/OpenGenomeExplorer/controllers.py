@@ -8,7 +8,7 @@ from py4web import action, request, redirect, URL
 from .common import db, session, auth
 from py4web.utils.url_signer import URLSigner
 from .models import get_user_email, get_user_id
-import json, requests, threading
+import json, requests
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
 from .settings import APP_FOLDER
@@ -31,7 +31,11 @@ with open('good_snp_data.json', 'r') as f:
 def index():
     if auth.current_user:
         redirect(URL('home'))
-    return dict()
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(use_gcs=USE_GCS)
 
 # Instruction page for non-logged in user; redirects to 'home' otherwise
 @action('instructions')
@@ -39,7 +43,11 @@ def index():
 def instructions():
     if auth.current_user:
         redirect(URL('home'))
-    return dict()
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(use_gcs=USE_GCS)
 
 @action('get_comment_url')
 @action.uses(url_signer.verify(), db, auth.user)
@@ -65,8 +73,13 @@ def comments(shared_snp_id):
 def shared_snp():
     get_shared_snps_url = URL('get_shared_SNPs', signer=url_signer)
     get_shared_sorted_snps_url = URL('get_shared_sorted_SNPs', signer=url_signer)
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True # Should be true but just for testing
+    else:
+        USE_GCS = False
     return dict(get_shared_snps_url=get_shared_snps_url,
-                get_shared_sorted_snps_url=get_shared_sorted_snps_url)
+                get_shared_sorted_snps_url=get_shared_sorted_snps_url,
+                use_gcs=USE_GCS)
 
 # Home page for logged in user
 @action('home')
@@ -84,7 +97,7 @@ def home():
     get_comment_url_url = URL('get_comment_url', signer=url_signer)
     
     if os.environ.get("GAE_ENV"):
-        USE_GCS = True # Should be true but just for testing
+        USE_GCS = True
     else:
         USE_GCS = False
     get_sorted_snps_url = URL('get_sorted_SNPs', signer=url_signer)
@@ -144,7 +157,11 @@ def search_SNPs():
         print("in else")
         user_snps = db((db.SNP.user_id == auth.user_id)).select(orderby=~db.SNP.weight_of_evidence).as_list()
 
-    return dict(user_snps=user_snps)
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(user_snps=user_snps, use_gcs=USE_GCS)
 
 # SNP Sharing
 @action('share_snp', method="POST")
@@ -166,7 +183,11 @@ def share_snp():
         weight_of_evidence=snp['weight_of_evidence']
     )
 
-    return dict()
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(use_gcs=USE_GCS)
 
 @action('add_comment')
 @action.uses(url_signer.verify(), db, auth.user)
@@ -447,6 +468,12 @@ def mark_possible_upload(file_path):
 
 # End GCS Handlers
 ##################
+
+# This code was written with the idea to be able to scrape periodically
+# to maintain a local database of SNP information. However, this is not
+# currently being used, since the OpenSNP API is updated extremely infrequently
+# Nonetheless the code is here ready to be turned into a cron job or something
+# if needed in the future
 
 def check_opensnp_json_with_rsid(rsid):
     # Makes a synchronous request to the OpenSNP API to check if the rsid exists

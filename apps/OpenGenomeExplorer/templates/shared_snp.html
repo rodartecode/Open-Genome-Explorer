@@ -1,4 +1,8 @@
-[[extend 'layout.html']]
+[[if use_gcs:]]
+  [[extend 'layout.html']]
+[[else:]]
+  [[extend 'cloud_layout.html']]
+[[pass]]
 
 <style>
 [v-cloak] {
@@ -88,7 +92,7 @@
 <script>
   let get_shared_snps_url = "[[=XML(get_shared_snps_url)]]";
   let get_shared_sorted_snps_url = "[[=XML(get_shared_sorted_snps_url)]]";
-  //let use_gcs = use_gcs || false;
+  let use_gcs = use_gcs || false;
 </script>
 <script type="module" src="js/shared_snp.js"></script>
 [[end]]
