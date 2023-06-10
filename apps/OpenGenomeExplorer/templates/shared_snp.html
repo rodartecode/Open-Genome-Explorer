@@ -9,12 +9,26 @@
 
 <div class="section" id="vue-target" v-cloak>
 
+  <div>
+    <a class="button" href="[[=URL('home')]]">Go back home</a>
+  </div>
+  <br>
   <div class="columns is-mobile">
     <div class="field column is-mobile">
       <input class="input" placeholder="Search rsids" v-model="search_rsid" @keyup="search"></input>
     </div>
     <div class="field column is-mobile">
       <input class="input" placeholder="Search in summary" v-model="search_summary" @keyup="search"></input>
+    </div>
+  </div>
+
+  <div v-if="loading">
+    <div class="section">
+      <div class="container">
+        <div class="loader-wrapper has-text-info">
+          <div class="loader is-loading"></div>
+        </div>
+      </div>
     </div>
   </div>
 
