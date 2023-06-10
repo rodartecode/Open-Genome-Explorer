@@ -37,7 +37,6 @@ def index():
         USE_GCS = False
     return dict(use_gcs=USE_GCS)
 
-# Instruction page for non-logged in user; redirects to 'home' otherwise
 @action('instructions')
 @action.uses('instructions.html', auth)
 def instructions():
@@ -101,6 +100,7 @@ def home():
     else:
         USE_GCS = False
     get_sorted_snps_url = URL('get_sorted_SNPs', signer=url_signer)
+
     return dict(share_snp_url=share_snp_url,
                 search_snps_url=search_snps_url,
                 file_upload_url=file_upload_url,
