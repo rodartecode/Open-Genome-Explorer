@@ -34,6 +34,13 @@ def index():
         redirect(URL('home'))
     return dict()
 
+@action('instructions')
+@action.uses('instructions.html', auth)
+def instructions():
+    if auth.current_user:
+        redirect(URL('home'))
+    return dict()
+
 @action('shared_snp')
 @action.uses('shared_snp.html', url_signer, db, auth.user)
 def shared_snp():
