@@ -2,6 +2,7 @@ nqgcs==0.1.4
 pycryptodome>=3.18.0
 
 # added these from the py4web requirements.txt
+py4web
 wheel
 ombott >= 1.0.0
 click
