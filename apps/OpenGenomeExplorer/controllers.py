@@ -29,6 +29,7 @@ if USE_GCS:
 with open('good_snp_data.json', 'r') as f:
   opensnp_data = json.load(f)
 
+# Index page for non-logged in user; redirects to 'home' otherwise
 @action('index')
 @action.uses('index.html', auth)
 def index():
@@ -36,6 +37,7 @@ def index():
         redirect(URL('home'))
     return dict()
 
+# Instruction page for non-logged in user; redirects to 'home' otherwise
 @action('instructions')
 @action.uses('instructions.html', auth)
 def instructions():
@@ -43,6 +45,7 @@ def instructions():
         redirect(URL('home'))
     return dict()
 
+# Route for URL sharing
 @action('shared_snp')
 @action.uses('shared_snp.html', url_signer, db, auth.user)
 def shared_snp():
@@ -51,6 +54,7 @@ def shared_snp():
     return dict(get_shared_snps_url=get_shared_snps_url,
                 get_shared_sorted_snps_url=get_shared_sorted_snps_url)
 
+# Home page for logged in user
 @action('home')
 @action.uses('home.html', url_signer, db, auth.user)
 def home():
@@ -95,6 +99,7 @@ def complement(alleles):
         print("In complement(), alleles:", alleles)
         print("Exception in complement():", e)
 
+# Search bar for SNPs
 @action('search_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def search_SNPs():
@@ -120,6 +125,7 @@ def search_SNPs():
 
     return dict(user_snps=user_snps)
 
+# SNP Sharing
 @action('share_snp', method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def share_snp():
@@ -141,6 +147,7 @@ def share_snp():
 
     return dict()
 
+# Getting an individual row; for showing details on a certain SNP
 @action('get_SNP_row')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_SNP_row():
@@ -202,6 +209,7 @@ def get_sorted_SNPs():
     # Return sorted list
     return dict(user_snps=user_snps)
 
+# Prepreocessing file before regex
 def preprocess_file(file):
     rsids = []
     for line in file:
@@ -221,6 +229,7 @@ def file_upload():
     process_snps(preprocess_file(uploaded_file))
     return "ok"
 
+# File formatting is different depending on the source
 def process_snps(file):
     SEARCH_REGEX = r"(rs\d+)\s+(\d+)\s+(\d+)\s+([ATGC])\s*([ATGC])"
     i = 0
@@ -249,6 +258,7 @@ def process_snps(file):
             print("rsid:", rsid, " allele1:", allele1, " allele2:", allele2)
             #print(opensnp_data['rs6684865'])
         
+        # Put rsid data into DB
         if result or allele1 != "":
             if rsid == "":
                 rsid = result.group(1)
@@ -258,7 +268,6 @@ def process_snps(file):
                 allele2 = result.group(5)
             #print(f"rsid:{rsid}|chromosome:{chromosome}|position:{position}|allele1{allele1}|allele2{allele2}")
 
-            # NOTE: this db insert is very costly; without this line a 600k line file takes 10 seconds to process
             if rsid in opensnp_data and allele1 != "-" and allele2 != "-":
                 #print("entered for rsid:", rsid)
                 weight_of_evidence = opensnp_data[rsid]['weight_of_evidence']
@@ -295,6 +304,7 @@ def process_snps(file):
 
 ################
 # GCS Handlers
+
 @action('file_info')
 @action.uses(url_signer.verify(), db, auth.user)
 def file_info():
