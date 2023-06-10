@@ -9,7 +9,9 @@ Open Genome Explorer is a web app that utilizes the genetic information the user
 ## Usage
 
 * Create an account using built-in py4web auth and sign in.
-* Upload your SNP array from sources like 23andMe or AncestryDNA. `test-genome.txt` is included for testing. The data in the file should follow the format:
+* Upload your SNP array from sources like 23andMe or AncestryDNA. `test-genome.txt` is included for testing. 
+![Upload](images/home.PNG)
+* The data in the file should follow the format:
 
 | rsid      | chromosome | position | genotype |
 |-----------|------------|----------|----------|
@@ -51,14 +53,10 @@ For instructions related to deployment, see `deployment_tools/gae/README.md`
 
 ## Implementation
 
-This app is implemented using the Py4web framework, Vue.js JavaScript framework, Bulma css, and Font Awesome icons, as well as open-source data provided by OpenSNP.
-
-The landing page acts as the app's index and does not require authorization. Pressing `Get Started` will lead the user through the instructions page and then to the home page, which requires authorization.
-
-Genomic information uploaded by the user is parsed and compared to known good SNP data taken from OpenSNP, stored in `good_snp_data.json`. A test file is provided, `test-genome.txt`. Every match found is added to a table, SNP. A separate function retrieves the SNPs, which is returned to and filtered by the frontend to be displayed. Uploading another file will insert rows into the table that were not there before, or update them otherwise.
-
-Sorting the table occurs as a request to the backend, which retrieves data from the SNPs table in an order specified by the frontend. This data is updated in the frontend as a `user_snps` variable.
-
-The search functionality occurs entirely in the frontend, and filters `user_snps` into `display_snps` based on the search parameters, which is then displayed.
-
-Shared SNPs are stored in a shared_SNP table by the backend, which contains publically shared SNPs and is referred to by comments, which are also handled by the backend.
+* This app is implemented using the Py4web framework, Vue.js JavaScript framework, Bulma css, and Font Awesome icons, as well as open-source data provided by OpenSNP.
+* The landing page acts as the app's index and does not require authorization. Pressing `Get Started` will lead the user through the instructions page and then to the home page, which requires authorization.
+* Genomic information uploaded by the user is parsed and compared to known good SNP data taken from OpenSNP, stored in `good_snp_data.json`. A test file is provided, `test-genome.txt`. Every match found is added to a table, SNP. A separate function retrieves the SNPs, which is returned to and filtered by the frontend to be displayed. Uploading another file will insert rows into the table that were not there before, or update them otherwise.
+* Sorting the table occurs as a request to the backend, `get_sorted_SNPs()`, which retrieves data from the SNPs table in an order specified by the frontend. This data is updated in the frontend as a `user_snps` variable.
+* The search functionality occurs entirely in the frontend, and filters `user_snps` into `display_snps` based on the search parameters, which is then displayed.
+* Shared SNPs are stored in a shared_SNP table by the backend in `share_snp()`, which contains publically shared SNPs and is referred to by comments, which are also handled by the backend in `add_comment()`.
+* The shared SNPs page makes a request to the backend to retrieve shared SNPs from the db in `get_shared_snps()` and is rendered by the frontend using the template `shared_snp.html`.
