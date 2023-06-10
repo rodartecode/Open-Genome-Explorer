@@ -43,6 +43,20 @@ def instructions():
         redirect(URL('home'))
     return dict()
 
+@action('comments')
+@action.uses('comments.html', url_signer.verify(), db, auth.user)
+def comments():
+    shared_snp_id = request.params.get("shared_snp_id")
+    snp = db(db.shared_SNP.id == shared_snp_id).select().as_list()[0]
+
+    add_comment_url = URL('add_comment', signer=url_signer)
+    get_comments_url = URL('get_comments', signer=url_signer)
+
+    return dict(SNP=snp,
+                shared_snp_id=shared_snp_id,
+                add_comment_url=add_comment_url,
+                get_comments_url=get_comments_url)
+
 @action('shared_snp')
 @action.uses('shared_snp.html', url_signer, db, auth.user)
 def shared_snp():
@@ -141,25 +155,26 @@ def share_snp():
 
     return dict()
 
-@action('get_SNP_row')
+@action('add_comment')
 @action.uses(url_signer.verify(), db, auth.user)
-def get_SNP_row():
-    rsid = str(request.params.get("rsid")).lower().strip().replace("\n", "")
-
-    user_snp = db((db.SNP.user_id == auth.user_id) & (db.SNP.rsid == rsid)).select().as_list()[0]
-
-    allele1 = user_snp['allele1']
-    allele2 = user_snp['allele2']
-
-    alleleFreq = opensnp_data[rsid]['genotype_frequency'][allele1+allele2] / sum(opensnp_data[rsid]['genotype_frequency'].values())
-
-    return dict(user_snps=user_snp)
+def add_comment():
+    shared_snp_id = request.params.get("shared_snp_id")
+    content = request.params.get("content")
+    db.meow.insert(content=content, shared_snp_id=shared_snp_id)
 
 @action('get_shared_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
 def get_shared_SNPs():
     user_snps = db(db.shared_SNP).select(orderby=~db.shared_SNP.weight_of_evidence).as_list()
     return dict(user_snps=user_snps)
+
+@action('get_comments')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_comments():
+    shared_snp_id = request.params.get("shared_snp_id")
+
+    comments = db(db.comments.shared_snp_id == shared_snp_id).select().as_list()
+    return dict(comments=comments)
 
 @action('get_SNPs')
 @action.uses(url_signer.verify(), db, auth.user)
