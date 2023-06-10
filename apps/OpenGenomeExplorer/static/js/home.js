@@ -321,6 +321,16 @@ let init = (app) => {
         })
     }
 
+    app.goto_comments = function (snp) {
+        axios.post(get_comment_url_url, {params: {snp_id: snp.id}})
+        .then(function (r) {
+            console.log("We got the URL:", r.data.url);
+            let a = document.createElement('a');
+            a.href = r.data.url;
+            a.click();
+        });
+    }
+
     app.methods = {
         upload_file_nogcs: app.upload_file_nogcs,
         upload_file_gcs: app.upload_file_gcs,
@@ -332,6 +342,7 @@ let init = (app) => {
         search: app.search,
         sort_table: app.sort_table,
         share_snp: app.share_snp,
+        goto_comments: app.goto_comments,
     };
 
     app.vue = new Vue({

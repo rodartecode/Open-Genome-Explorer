@@ -7,9 +7,7 @@ This file is provided as an example:
 """
 import os
 from py4web.core import required_folder
-
-# Flag whether we are storing our files on GCS or in memory
-USE_GCS = False
+from .private.secrets import DB_USER, DB_USER_PASSWORD, DB_NAME, DB_CONNECTION_NAME
 
 # db settings
 APP_FOLDER = os.path.dirname(__file__)
@@ -17,16 +15,24 @@ APP_NAME = os.path.split(APP_FOLDER)[-1]
 # DB_FOLDER:    Sets the place where migration files will be created
 #               and is the store location for SQLite databases
 DB_FOLDER = required_folder(APP_FOLDER, "databases")
+
+CLOUD_DB_URI = f"google:MySQLdb://{DB_USER}:{DB_USER_PASSWORD}@/{DB_NAME}?unix_socket=/cloudsql/{DB_CONNECTION_NAME}"
+CLOUD_DB_POOL_SIZE = 1
+CLOUD_DB_MIGRATE = False
+CLOUD_DB_FAKE_MIGRATE = False  # maybe?
+
 DB_URI = "sqlite://storage.db"
 DB_POOL_SIZE = 1
 DB_MIGRATE = True
 DB_FAKE_MIGRATE = False  # maybe?
 
 # location where static files are stored:
-STATIC_FOLDER = required_folder(APP_FOLDER, "static")
+if not os.environ.get("GAE_ENV"):
+    STATIC_FOLDER = required_folder(APP_FOLDER, "static")
 
 # location where to store uploaded files:
-UPLOAD_FOLDER = required_folder(APP_FOLDER, "uploads")
+if not os.environ.get("GAE_ENV"):
+    UPLOAD_FOLDER = required_folder(APP_FOLDER, "uploads")
 
 # send email on regstration
 VERIFY_EMAIL = True
@@ -60,8 +66,8 @@ LOGGERS = [
 ]  # syntax "severity:filename" filename can be stderr or stdout
 
 # single sign on Google (will be used if provided)
-OAUTH2GOOGLE_CLIENT_ID = None
-OAUTH2GOOGLE_CLIENT_SECRET = None
+# OAUTH2GOOGLE_CLIENT_ID = None # These are defined in private/secret.py
+# OAUTH2GOOGLE_CLIENT_SECRET = None 
 
 # single sign on Okta (will be used if provided. Please also add your tenant
 # name to py4web/utils/auth_plugins/oauth2okta.py. You can replace the XXX
@@ -93,6 +99,6 @@ CELERY_BROKER = "redis://localhost:6379/0"
 
 # try import private settings
 try:
-    from .settings_private import *
+    from .private.secrets import *
 except (ImportError, ModuleNotFoundError):
     pass

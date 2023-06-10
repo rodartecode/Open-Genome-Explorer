@@ -1,25 +1,21 @@
 import datetime
-import random
 import os
 import uuid
 import re
 import json
 
-from py4web import action, request, abort, redirect, URL
-from yatl.helpers import A
-from .common import db, session, T, cache, auth, logger, authenticated, unauthenticated, flash
+from py4web import action, request, redirect, URL
+from .common import db, session, auth
 from py4web.utils.url_signer import URLSigner
-from .models import get_username, get_user_email, get_user_id, clear_db
-import pickle
-import json, requests, threading, queue, time, string
-import asyncio
+from .models import get_user_email, get_user_id
+import json, requests
 from nqgcs import NQGCS
 from .gcs_url import gcs_url
-from .settings import APP_FOLDER, USE_GCS
+from .settings import APP_FOLDER
 
 url_signer = URLSigner(session)
 opensnp_data = {}
-if USE_GCS:
+if os.environ.get("GAE_ENV"):
     BUCKET = "/open-genome-explorer"
     GCS_KEY_PATH =  os.path.join(APP_FOLDER, 'private/gcs_keys.json')
     with open(GCS_KEY_PATH) as f:
@@ -35,7 +31,11 @@ with open('good_snp_data.json', 'r') as f:
 def index():
     if auth.current_user:
         redirect(URL('home'))
-    return dict()
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(use_gcs=USE_GCS)
 
 # Instruction page for non-logged in user; redirects to 'home' otherwise
 @action('instructions')
@@ -43,12 +43,21 @@ def index():
 def instructions():
     if auth.current_user:
         redirect(URL('home'))
-    return dict()
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(use_gcs=USE_GCS)
 
-@action('comments')
+@action('get_comment_url')
+@action.uses(url_signer.verify(), db, auth.user)
+def get_comments():
+    snp_id = int(request.params.get("snp_id"))
+    return dict(url=URL('goto_comments', snp_id, signer=url_signer))
+
+@action('comments/<shared_snp_id>')
 @action.uses('comments.html', url_signer.verify(), db, auth.user)
-def comments():
-    shared_snp_id = request.params.get("shared_snp_id")
+def comments(shared_snp_id):
     snp = db(db.shared_SNP.id == shared_snp_id).select().as_list()[0]
 
     add_comment_url = URL('add_comment', signer=url_signer)
@@ -64,8 +73,13 @@ def comments():
 def shared_snp():
     get_shared_snps_url = URL('get_shared_SNPs', signer=url_signer)
     get_shared_sorted_snps_url = URL('get_shared_sorted_SNPs', signer=url_signer)
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True # Should be true but just for testing
+    else:
+        USE_GCS = False
     return dict(get_shared_snps_url=get_shared_snps_url,
-                get_shared_sorted_snps_url=get_shared_sorted_snps_url)
+                get_shared_sorted_snps_url=get_shared_sorted_snps_url,
+                use_gcs=USE_GCS)
 
 # Home page for logged in user
 @action('home')
@@ -80,6 +94,12 @@ def home():
     obtain_gcs_url = URL('obtain_gcs', signer=url_signer)
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
+    get_comment_url_url = URL('get_comment_url', signer=url_signer)
+    
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
     get_sorted_snps_url = URL('get_sorted_SNPs', signer=url_signer)
     return dict(share_snp_url=share_snp_url,
                 search_snps_url=search_snps_url,
@@ -90,6 +110,7 @@ def home():
                 notify_url=notify_url,
                 delete_url=delete_url,
                 get_sorted_snps_url=get_sorted_snps_url,
+                get_comment_url_url=get_comment_url_url,
                 use_gcs=USE_GCS)
 
 # Code provided by Valeska
@@ -136,7 +157,11 @@ def search_SNPs():
         print("in else")
         user_snps = db((db.SNP.user_id == auth.user_id)).select(orderby=~db.SNP.weight_of_evidence).as_list()
 
-    return dict(user_snps=user_snps)
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(user_snps=user_snps, use_gcs=USE_GCS)
 
 # SNP Sharing
 @action('share_snp', method="POST")
@@ -158,7 +183,11 @@ def share_snp():
         weight_of_evidence=snp['weight_of_evidence']
     )
 
-    return dict()
+    if os.environ.get("GAE_ENV"):
+        USE_GCS = True
+    else:
+        USE_GCS = False
+    return dict(use_gcs=USE_GCS)
 
 @action('add_comment')
 @action.uses(url_signer.verify(), db, auth.user)
@@ -315,6 +344,7 @@ def process_snps(file):
                   )
     print("finished processing SNPS!")
 
+
 ################
 # GCS Handlers
 
@@ -322,8 +352,8 @@ def process_snps(file):
 @action.uses(url_signer.verify(), db, auth.user)
 def file_info():
     row = db(db.SNP_File.owner == get_user_email()).select().first()
-
-    if row is not None and not row.confirmed:
+    # each user can only have one file
+    if row is not None and not row.status == "ready":
         delete_path(row.file_path)
         row.delete_record()
         row = {}
@@ -345,6 +375,7 @@ def file_info():
 @action('obtain_gcs', method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def obtain_gcs():
+    # handles request from client to make a request to GCS
     action = request.json.get("action")
     if action == "PUT":
         mimetype = request.json.get("mimetype")
@@ -352,7 +383,9 @@ def obtain_gcs():
         extension = os.path.splitext(file_name)[1]
         file_path = os.path.join(BUCKET, str(uuid.uuid1()) + extension)
         mark_possible_upload(file_path)
+        # This signed URL will allow the client to upload the file to GCS
         signed_url = gcs_url(GCS_KEYS, file_path, verb="PUT", content_type=mimetype)
+
         return dict(
             signed_url = signed_url,
             file_path = file_path
@@ -371,6 +404,8 @@ def obtain_gcs():
 @action("notify_upload", method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def notify_upload():
+    # handles request from client to notify server that file has been uploaded
+    # to GCS successfully
     file_type = request.json.get("file_type")
     file_path = request.json.get("file_path")
     file_name = request.json.get("file_name")
@@ -389,11 +424,13 @@ def notify_upload():
         file_name = file_name,
         file_size = file_size,
         file_date = now,
-        confirmed = True
+        status = "ready"
     )
 
     file = nqgcs.read(BUCKET, file_path)
-    file = preprocess_file(str(file))
+    # at this point file is a bytes object
+    file = preprocess_file(file.split(b"\n"))
+    # now check for SNP matches
     process_snps(file)
 
     return dict(download_url = gcs_url(GCS_KEYS, file_path, verb="GET"), file_date=now)
@@ -401,6 +438,7 @@ def notify_upload():
 @action("notify_delete", method="POST")
 @action.uses(url_signer.verify(), db, auth.user)
 def notify_delete():
+    # handles request from client to notify server that file has been deleted
     file_path = request.json.get("file_path")
     db((db.SNP_File.file_path == file_path) & (db.SNP_File.owner == get_user_email())).delete()
     return "ok"
@@ -409,12 +447,13 @@ def delete_path(file_path):
     if file_path:
         try:
             bucket, id = os.path.split(file_path)
-            if USE_GCS:
+            if os.environ.get("GAE_ENV"): # we're only using GCS in production
                 nqgcs.delete(bucket[1:], id)
         except Exception as e:
             print("Error deleting", file_path, ":", e)
 
 def delete_previous_uploads():
+    # We do this because we only want to keep one file per user
     previous = db(db.SNP_File.owner == get_user_email()).select()
     for row in previous:
         delete_path(row.file_path)
@@ -424,8 +463,75 @@ def mark_possible_upload(file_path):
     db.SNP_File.insert(
         owner = get_user_email(),
         file_path = file_path,
-        confirmed = False
+        status = "uploading"
     )
 
 # End GCS Handlers
 ##################
+
+# This code was written with the idea to be able to scrape periodically
+# to maintain a local database of SNP information. However, this is not
+# currently being used, since the OpenSNP API is updated extremely infrequently
+# Nonetheless the code is here ready to be turned into a cron job or something
+# if needed in the future
+
+def check_opensnp_json_with_rsid(rsid):
+    # Makes a synchronous request to the OpenSNP API to check if the rsid exists
+    # If the rsid has new information, it will be updated in the database
+    # OpenSNP JSON-API documentation:
+    # https://github.com/openSNP/snpr/wiki/JSON-API
+
+    # Make the request
+    url = f"http://opensnp.org/snps/json/annotation/{rsid}.json"
+    response = requests.get(url)
+    # Response should contain an object containing 
+    #  - rsid
+    #  - chromosome
+    #  - position
+    #  - allele_frequency
+    #  - genotype_frequency
+    #  - annotations (list of lists of annotations)
+    data = response.json()
+    data = data['snp']
+    # Count the number of annotations
+    annotations = 0
+    for annotation_source in data['annotations']:
+        annotations += len(annotation_source)
+    if annotations == 0:
+        return False
+    # Update the database
+    weight_of_evidence = calculate_weight_of_evidence(data['annotations'])
+    rsid_id = db.RSID.update_or_insert(rsid=rsid)
+    url = f"https://opensnp.org/snps/{rsid}"
+    for genotype in data['genotype_frequency']:
+        # Genotypes from this API will always be 2 char strings
+        allele1 = genotype[0]
+        allele2 = genotype[1]
+        db.RSID_Info.update_or_insert(
+            rsid=rsid_id,
+            url=url,
+            allele1=allele1,
+            allele2=allele2,
+            weight_of_evidence=weight_of_evidence
+        )
+    return data
+
+
+def calculate_weight_of_evidence(publications):
+    # publications is a dict with name of each publisher as key and
+    # a list of annotations that they've published as the value
+    #
+    # according to opensnp weight of evidence is calculated as follows:
+    # each snpedia entry is worth 5 points
+    # plos, pgp_annotations, and genome_gov_publications are worth 2 points
+    # all other annotations are worth 1 point
+    # the total weight of evidence is the sum of all points
+    weight_of_evidence = 0
+    for publisher, _ in publications:
+        if publisher == 'snpedia':
+            weight_of_evidence += 5
+        elif publisher in ['plos', 'pgp_annotations', 'genome_gov_publications']:
+            weight_of_evidence += 2
+        else:
+            weight_of_evidence += 1
+    return weight_of_evidence
