@@ -57,6 +57,7 @@ def home():
     notify_url = URL('notify_upload', signer=url_signer)
     delete_url = URL('notify_delete', signer=url_signer)
     get_sorted_snps_url = URL('get_sorted_SNPs', signer=url_signer)
+
     return dict(share_snp_url=share_snp_url,
                 search_snps_url=search_snps_url,
                 file_upload_url=file_upload_url,
