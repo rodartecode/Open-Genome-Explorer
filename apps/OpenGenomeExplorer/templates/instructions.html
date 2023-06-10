@@ -14,36 +14,46 @@
 </head>
 
 <body>
-
-    <div>
-        <div class="has-text-centered">
-            <h1>Step 1:</h1>
-            <p>Download your SNP array file from 23&me, AncestryDNA, or similar websites.</p>
-            <br>
-            <a class="button" href="https://customercare.23andme.com/hc/en-us/articles/212196868-Accessing-Your-Raw-Genetic-Data">23&Me Instructions</a>
-            <br>
-            <a class="button" href="https://support.ancestry.com/s/article/Downloading-DNA-Data?language=en_US">AncestryDNA Instructions</a>
-
-            <br>
-            <br>
-            <h1>Step 2:</h1>
-            <p>Store it locally and make an account on this website via the button below</p>
-            <br>
-            <br>
-
-            <h1>Step 3:</h1>
-            <p>Upload your file and peruse the results</p>
-            <br>
-            <p>You may also view results that other users have shared and even leave comments!</p>
-        </div>
-    </div>
-
-    <br>
-
-    <div class="has-text-centered">
-        <a class="button is-medium is-dark" href="[[=URL('home')]]">Get Started</a>
-    </div>
-
+    <section class="hero is-light">
+        <div class="hero-body">
+            <div class="is-mobile hero light is-centered is-variable is-8 my-4">
+                <div class="hero light is-mobile is-one-quarter is-flex is-align-items-center">
+                    <img src="images/logo.PNG">
+                </div>
+            </div>
+                <div class="tile is-ancestor pl-6 pr-6 pt-6">
+                    <div class="tile is-parent">
+                        <div class="tile box is-child notification has-background-primary-light">
+                            <p class="is-size-3 has-text-black has-text-weight-bold">Step 1:</p>
+                            <p class="is-size-3 has-text-black">Download your SNP array file from 23&me, AncestryDNA, or similar websites.</p>
+                            <br>
+                            <a class="button" href="https://customercare.23andme.com/hc/en-us/articles/212196868-Accessing-Your-Raw-Genetic-Data">23&Me Instructions</a>
+                            <br>
+                            <br>
+                            <a class="button" href="https://support.ancestry.com/s/article/Downloading-DNA-Data?language=en_US">AncestryDNA Instructions</a>
+                        </div>
+                    </div>
+                    <div class="tile is-parent">
+                        <div class="tile box is-child notification has-background-warning-light">
+                            <p class="is-size-3 has-text-black has-text-weight-bold">Step 2:</p>
+                            <p class="is-size-3 has-text-black">Store it locally and make an account on this website via the button below</p>
+                        </div>
+                    </div>
+                    <div class="tile is-parent">
+                        <div class="tile box is-child notification has-background-danger-light">
+                            <p class="is-size-3 has-text-black has-text-weight-bold">Step 3:</p>
+                            <p class="is-size-3 has-text-black">Upload your file and peruse the results</p>
+                        </div>
+                    </div>
+                </div>
+          <br>
+          <div class="has-text-centered">
+            <a class="button is-medium is-dark" href="[[=URL('home')]]">Get Started</a>
+          </div>
+        </p>
+      </div>
+      <div class="columns is-mobile">
+    </section>
 </body>
 
 [[block page_scripts]]
